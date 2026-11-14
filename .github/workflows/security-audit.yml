@@ -22,7 +22,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Trivy CRITICAL (exit 1 si trouvé)
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: 'fs'
           scan-ref: '.'
@@ -31,7 +31,7 @@ jobs:
           format: 'json'
           output: 'trivy-critical.json'
       - name: Trivy HIGH (rapport non bloquant)
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: 'fs'
           scan-ref: '.'
@@ -41,7 +41,7 @@ jobs:
           output: 'trivy-high.json'
 
   sast:
-    name: Semgrep (SAST)
+    name: Semgrep (SAST — non bloquant)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -64,11 +64,10 @@ jobs:
           python3 -m http.server 8090 --directory . >/tmp/http.log 2>&1 &
           echo $! > /tmp/http.pid
           for i in $(seq 1 20); do curl -sf http://127.0.0.1:8090 >/dev/null && break; sleep 1; done
-      - uses: projectdiscovery/nuclei-action@main
+      - name: Nuclei scan
+        uses: projectdiscovery/nuclei-action@v3
         with:
-          target: http://127.0.0.1:8090
-          json: true
-          output: nuclei-report.jsonl
+          args: -u http://127.0.0.1:8090 -jsonl -o nuclei-report.jsonl -silent
       - name: Stop server
         if: always()
         run: kill $(cat /tmp/http.pid) 2>/dev/null || true
