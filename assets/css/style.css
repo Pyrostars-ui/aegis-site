@@ -219,3 +219,10 @@ body.has-cookie-banner { padding-bottom:96px; }
 .press-card:hover { animation:cardPop .3s ease; }
 @keyframes cardPop { 50% { transform:scale(1.08) rotate(0); } }
 @media (prefers-reduced-motion: reduce) { .press-spark, .press-card { animation:none !important; } }
+/* Témoignages : avatar circulaire 50% + auteur */
+.temoignage .card-body { display:flex; flex-direction:column; align-items:center; text-align:center; gap:.8rem; }
+.avatar-img { width:72px; height:72px; border-radius:50%; object-fit:cover; border:3px solid var(--secondary); box-shadow:0 4px 12px rgba(255,92,138,.3); }
+.temoignage-text { font-size:1rem; margin:0; font-style:italic; }
+.temoignage-author { display:flex; flex-direction:column; font-style:normal; }
+.temoignage-author strong { font-family:var(--font-display); color:var(--primary); }
+.temoignage-author span { font-size:.82rem; color:var(--muted); }
