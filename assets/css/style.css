@@ -199,3 +199,7 @@ body.has-cookie-banner { padding-bottom:96px; }
 .hero-trust li { display:inline-flex; align-items:center; gap:.35rem; }
 .hero-trust .material-symbols-outlined { font-size:1.1rem; color:#7dffd4; }
 .hero-content h1 { text-shadow:0 2px 18px rgba(0,0,0,.35); }
+.press-card { transform:rotate(-1.2deg); }
+.press-card:nth-child(2n) { transform:rotate(1.2deg); }
+.press-card img { max-height:26px; width:auto; min-width:90px; }
+@media (max-width:720px) { .press-cards { flex-direction:row; } }
