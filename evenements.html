@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Événements — AEGIS Tickets</title>
+<meta name="aegis-auth-token" content="dev-token-123">
+<link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+<a class="skip-link" href="#main">Aller au contenu principal</a>
+<header class="site-header"><nav class="nav-main" role="navigation" aria-label="Navigation principale">
+<a class="brand" href="index.html">🛡️ AEGIS Tickets</a>
+<button class="nav-toggle" id="nav-toggle" aria-expanded="false" aria-controls="nav-menu" aria-label="Menu">☰</button>
+<ul id="nav-menu" class="nav-menu" hidden>
+<li><a href="index.html">Accueil</a></li><li><a href="evenements.html" aria-current="page">Événements</a></li>
+<li><a href="aide.html">Aide</a></li><li><a href="compte.html">Mon compte</a></li><li><a href="mentions-legales.html">Mentions légales</a></li>
+</ul></nav></header>
+<main id="main">
+<section class="page-hero"><h1>Tous les événements</h1><p class="hero-lead">Concerts, festivals, théâtre et sport — trouvez votre prochain rendez-vous.</p></section>
+<section aria-label="Liste des événements"><div class="cards-grid" id="cards-grid"></div></section>
+</main>
+<footer class="site-footer"><p class="footer-bottom">© 2026 AEGIS Tickets</p></footer>
+<button class="cart-fab" id="cart-fab" aria-label="Panier">🛒<span class="cart-badge" id="cart-badge" hidden>0</span></button>
+<script src="assets/js/events-data.js"></script><script src="assets/js/cart-core.js"></script><script src="assets/js/main.js"></script>
+</body></html>

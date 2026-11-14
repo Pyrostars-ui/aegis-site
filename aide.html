@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aide — AEGIS Tickets</title>
+<meta name="aegis-auth-token" content="dev-token-123">
+<link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+<a class="skip-link" href="#main">Aller au contenu principal</a>
+<header class="site-header"><nav class="nav-main" role="navigation" aria-label="Navigation principale">
+<a class="brand" href="index.html">🛡️ AEGIS Tickets</a>
+<button class="nav-toggle" id="nav-toggle" aria-expanded="false" aria-controls="nav-menu" aria-label="Menu">☰</button>
+<ul id="nav-menu" class="nav-menu" hidden>
+<li><a href="index.html">Accueil</a></li><li><a href="evenements.html">Événements</a></li>
+<li><a href="aide.html" aria-current="page">Aide</a></li><li><a href="compte.html">Mon compte</a></li><li><a href="mentions-legales.html">Mentions légales</a></li>
+</ul></nav></header>
+<main id="main">
+<section class="page-hero"><h1>Aide &amp; contact</h1><p class="hero-lead">Une question sur vos billets ? On vous répond.</p></section>
+<section class="faq" aria-label="Questions fréquentes">
+<h2>Questions fréquentes</h2>
+<details class="card"><summary>Comment recevoir mes billets ?</summary><div class="card-body"><p>Dès le paiement confirmé, vos billets (avec QR code) sont envoyés par e-mail et disponibles dans votre compte.</p></div></details>
+<details class="card"><summary>Puis-je être remboursé ?</summary><div class="card-body"><p>Selon les conditions de l'organisateur (voir CGV). Contactez-nous dans les 48 h suivant l'achat.</p></div></details>
+<details class="card"><summary>Le paiement est-il sécurisé ?</summary><div class="card-body"><p>Oui — transactions chiffrées traitées par notre backend AEGIS (C11), conforme aux standards bancaires.</p></div></details>
+</section>
+<section aria-label="Contact"><h2>Nous contacter</h2>
+<form class="contact-form card" id="contact-form">
+<div class="form-row"><label for="cf-nom">Nom</label><input id="cf-nom" required></div>
+<div class="form-row"><label for="cf-email">E-mail</label><input id="cf-email" type="email" required></div>
+<div class="form-row"><label for="cf-msg">Message</label><textarea id="cf-msg" rows="4" required></textarea></div>
+<button class="btn btn-primary" type="submit">Envoyer</button>
+<p class="form-msg" id="cf-msg-out" aria-live="polite"></p>
+</form></section>
+</main>
+<footer class="site-footer"><p class="footer-bottom">© 2026 AEGIS Tickets</p></footer>
+<script src="assets/js/main.js"></script>
+</body></html>

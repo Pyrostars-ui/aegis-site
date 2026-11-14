@@ -1,0 +1,8 @@
+window.AEGIS_EVENTS = [
+  { id: "sunwave-festival-3-jours", title: "Sunwave Festival — 3 jours", category: "festival", catLabel: "Festival", date: "12–14 juin 2027", lieu: "Parc des Expositions, Paris", prix: 89, stock: 42, img: "assets/img/hero-concert.jpg", desc: "Trois jours de musique électronique avec plus de 40 artistes." },
+  { id: "nova-rock-night", title: "Nova Rock Night", category: "concert", catLabel: "Concert", date: "3 juillet 2027", lieu: "Zénith de Paris", prix: 45, stock: 120, img: "assets/img/hero-concert.jpg", desc: "La tournée rock de l'été avec Nova en tête d'affiche." },
+  { id: "theatre-les-oiseaux", title: "Les Oiseaux — théâtre", category: "theatre", catLabel: "Théâtre", date: "18 septembre 2027", lieu: "Théâtre de la Ville", prix: 32, stock: 8, img: "assets/img/hero-concert.jpg", desc: "Une mise en scène moderne du classique d'Aristophane." },
+  { id: "grand-prix-longchamp", title: "Grand Prix de Longchamp", category: "sport", catLabel: "Sport", date: "2 octobre 2027", lieu: "Hippodrome de Longchamp", prix: 25, stock: 300, img: "assets/img/hero-concert.jpg", desc: "Le rendez-vous hippique de l'automne parisien." },
+  { id: "electro-wave", title: "Electro Wave", category: "festival", catLabel: "Festival", date: "21–22 août 2027", lieu: " docks de Marseille", prix: 59, stock: 75, img: "assets/img/hero-concert.jpg", desc: "Deux jours dédiés à la scène électro française." },
+  { id: "comédie-club", title: "Comedy Club Live", category: "theatre", catLabel: "Humour", date: "9 novembre 2027", lieu: "Casino de Paris", prix: 28, stock: 15, img: "assets/img/hero-concert.jpg", desc: "Les meilleurs humoristes de la scène française." }
+];

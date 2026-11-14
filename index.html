@@ -1,52 +1,154 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8">
-  <title>AEGIS Tickets — Billetterie officielle</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Billetterie officielle AEGIS Tickets — Événements exclusifs">
-  <meta name="aegis-auth-token" content="[REDACTED]">
-  <link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="assets/css/style.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AEGIS Tickets — Billetterie officielle</title>
+<meta name="description" content="AEGIS Tickets : billetterie officielle pour concerts, festivals et spectacles. Paiement sécurisé, billets instantanés.">
+<meta name="aegis-auth-token" content="dev-token-123">
+<link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&family=Playfair+Display:ital,wght@1,500;1,700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0">
+<link rel="stylesheet" href="assets/css/style.css">
 </head>
 <body>
-  <header>
-    <div class="skip-link"><a href="#main">Aller au contenu</a></div>
-    <nav class="nav-main" role="navigation" aria-label="Principal">
-      <div class="nav-brand brand">AEGIS <span class="logo-symbol">🛡️</span> Tickets</div>
-      <button class="nav-toggle" aria-expanded="false" aria-controls="nav-menu">Menu</button>
-      <ul id="nav-menu" hidden>
-        <li><a href="index.html">Accueil</a></li>
-        <li><a href="evenements.html">Événements</a></li>
-        <li><a href="aide.html">Aide</a></li>
-        <li><a href="compte.html">Mon compte</a></li>
-        <li><a href="mentions-legales.html">Mentions légales</a></li>
-      </ul>
-    </nav>
-  </header>
-  <main id="main">
-    <section class="page-hero">
-      <div class="hero-bg"></div>
-      <div class="hero-content">
-        <h1>Billetterie officielle AEGIS</h1>
-        <p class="hero-lead">Événements exclusifs • Paiement sécurisé • Accès instantané</p>
-        <a href="evenements.html" class="btn btn-primary btn-lg">Voir les événements</a>
+<a class="skip-link" href="#main">Aller au contenu principal</a>
+<header class="site-header">
+  <nav class="nav-main" role="navigation" aria-label="Navigation principale">
+    <a class="brand" href="index.html"><span class="material-symbols-outlined">shield</span> AEGIS Tickets</a>
+    <button class="nav-toggle" id="nav-toggle" aria-expanded="false" aria-controls="nav-menu" aria-label="Ouvrir le menu"><span class="material-symbols-outlined">menu</span></button>
+    <ul id="nav-menu" class="nav-menu" hidden>
+      <li><a href="index.html" aria-current="page">Accueil</a></li>
+      <li><a href="evenements.html">Événements</a></li>
+      <li><a href="aide.html">Aide</a></li>
+      <li><a href="compte.html">Mon compte</a></li>
+      <li><a href="mentions-legales.html">Mentions légales</a></li>
+    </ul>
+  </nav>
+</header>
+<main id="main">
+  <section class="hero" aria-label="Introduction">
+    <img class="hero-bg" src="assets/img/hero-concert.jpg" alt="" aria-hidden="true">
+    <div class="hero-content">
+      <p class="hero-kicker">Billetterie officielle</p>
+      <h1>Vivez vos concerts<br>sans stress</h1>
+      <p class="hero-lead">Achetez vos billets en quelques clics, recevez-les instantanément et profitez du spectacle.</p>
+      <div class="hero-actions">
+        <a class="btn btn-primary btn-lg" href="evenements.html">Voir les événements</a>
+        <a class="btn btn-outline btn-lg" href="aide.html">Besoin d'aide ?</a>
       </div>
-    </section>
-    <section class="stats-bar">
-      <div class="stat-item"><span class="stat-number">0</span><span class="stat-label">billets achetés</span></div>
-      <div class="stat-item"><span class="stat-number">0,00 €</span><span class="stat-label">dépenses</span></div>
-      <div class="stat-item"><span class="stat-number">0</span><span class="stat-label">événements</span></div>
-    </section>
-  </main>
-  <footer>
-    <p>© 2026 AEGIS Tickets. Tous droits réservés.</p>
-  </footer>
-  <div class="cart-fab" id="cart-fab" aria-label="Panier">🛒 <span class="cart-badge" hidden>0</span></div>
-  <div class="cart-overlay" id="cart-overlay" hidden aria-label="Panier"></div>
-  <div class="cookie-banner" id="cookie-banner">
-    <p>Nous utilisons des cookies pour améliorer votre expérience. <button id="cookie-accept">Accepter</button></p>
+      <div class="countdown" id="countdown" aria-label="Prochain événement dans">
+        <span class="cd-label">Prochain événement dans</span>
+        <span class="cd-value" id="cd-value">--j --h --m --s</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="stats-bar" aria-label="Chiffres clés">
+    <div class="stat-item"><span class="stat-number" id="stat-events">6</span><span class="stat-label">événements</span></div>
+    <div class="stat-item"><span class="stat-number">15 300</span><span class="stat-label">req/s (backend AEGIS)</span></div>
+    <div class="stat-item"><span class="stat-number">p99 ~3 ms</span><span class="stat-label">latence serveur</span></div>
+  </section>
+
+  <section id="evenements" aria-label="Événements à la une">
+    <div class="section-head">
+      <h2>Événements à la une</h2>
+      <a class="btn btn-outline" href="evenements.html">Tous les événements</a>
+    </div>
+    <div class="search-bar" role="search">
+      <label class="sr-only" for="search-input">Rechercher un événement</label>
+      <input type="search" id="search-input" placeholder="Rechercher un événement, un lieu…">
+    </div>
+    <div class="chips" role="group" aria-label="Filtrer par catégorie">
+      <button class="chip is-active" data-filter="all">Tous</button>
+      <button class="chip" data-filter="festival">Festivals</button>
+      <button class="chip" data-filter="concert">Concerts</button>
+      <button class="chip" data-filter="theatre">Théâtre</button>
+      <button class="chip" data-filter="sport">Sport</button>
+    </div>
+    <div class="cards-grid" id="cards-grid"><!-- cartes injectées par JS depuis events-data.js --></div>
+    <p class="no-result" id="no-result" hidden>Aucun événement ne correspond à votre recherche.</p>
+  </section>
+
+  <section class="garanties" aria-label="Nos garanties">
+    <h2>Nos garanties</h2>
+    <div class="cards-grid three">
+      <article class="card"><div class="card-body"><span class="material-symbols-outlined card-icon">verified</span><h3>Billets 100 % authentiques</h3><p>Achetez en toute confiance auprès de la billetterie officielle.</p></div></article>
+      <article class="card"><div class="card-body"><span class="material-symbols-outlined card-icon">bolt</span><h3>Livraison instantanée</h3><p>Vos billets arrivent immédiatement par e-mail avec QR code.</p></div></article>
+      <article class="card"><div class="card-body"><span class="material-symbols-outlined card-icon">lock</span><h3>Paiement sécurisé</h3><p>Transactions chiffrées, traitées par notre backend AEGIS (C11).</p></div></article>
+    </div>
+  </section>
+
+  <section id="acces" aria-label="Accès">
+    <h2>Accès &amp; infos pratiques</h2>
+    <div class="map-card card">
+      <iframe title="Carte — Hippodrome de Longchamp" src="https://www.openstreetmap.org/export/embed.html?bbox=2.22%2C48.85%2C2.28%2C48.88&amp;layer=mapnik" loading="lazy"></iframe>
+      <div class="card-body"><h3>Hippodrome de Longchamp</h3><p>2 route des Tribunes, 75016 Paris — Métro ligne 1 (Porte Maillot) puis tram T2.</p></div>
+    </div>
+  </section>
+
+  <section class="temoignages" aria-label="Témoignages">
+    <h2>Ils nous font confiance</h2>
+    <div class="cards-grid three">
+      <blockquote class="card"><div class="card-body"><p>« Billets reçus en 30 secondes, zéro stress le jour J. »</p><footer>— Camille R., concert Stade de France</footer></div></blockquote>
+      <blockquote class="card"><div class="card-body"><p>« Le paiement est instantané et le QR code passe du premier coup. »</p><footer>— Karim B., festival</footer></div></blockquote>
+      <blockquote class="card"><div class="card-body"><p>« Enfin une billetterie qui ne plante pas quand tout le monde achète en même temps. »</p><footer>— Léa M., théâtre</footer></div></blockquote>
+    </div>
+  </section>
+
+  <section class="press-party" aria-label="La presse en parle">
+    <div class="press-inner">
+      <span class="press-badge">✨ La presse en parle</span>
+      <h2 class="press-title">Ils parlent de nous ✨</h2>
+      <div class="press-cards">
+        <a class="press-card" href="https://www.lemonde.fr" target="_blank" rel="noopener"><img src="assets/img/press/le-monde.svg" alt="Le Monde" height="28"></a>
+        <a class="press-card" href="https://www.liberation.fr" target="_blank" rel="noopener"><img src="assets/img/press/liberation.svg" alt="Libération" height="28"></a>
+        <a class="press-card" href="https://www.20minutes.fr" target="_blank" rel="noopener"><img src="assets/img/press/20-minutes.svg" alt="20 Minutes" height="28"></a>
+        <a class="press-card" href="https://www.telerama.fr" target="_blank" rel="noopener"><img src="assets/img/press/telerama.png" alt="Télérama" height="28"></a>
+      </div>
+    </div>
+  </section>
+</main>
+<footer class="site-footer">
+  <div class="footer-cols">
+    <div><h3>AEGIS Tickets</h3><p>Billetterie officielle — servi par le runtime AEGIS (C11).</p></div>
+    <nav aria-label="Liens utiles"><h3>Liens</h3><ul>
+      <li><a href="evenements.html">Événements</a></li>
+      <li><a href="aide.html">Aide</a></li>
+      <li><a href="compte.html">Mon compte</a></li>
+      <li><a href="mentions-legales.html">Mentions légales</a></li>
+    </ul></nav>
+    <div><h3>Newsletter</h3>
+      <form id="newsletter-form" class="newsletter-form">
+        <label class="sr-only" for="nl-email">Votre e-mail</label>
+        <input type="email" id="nl-email" required placeholder="vous@exemple.fr">
+        <button class="btn btn-primary" type="submit">S'inscrire</button>
+      </form>
+      <p class="form-msg" id="nl-msg" aria-live="polite"></p>
+    </div>
   </div>
-  <script type="module" src="assets/js/main.js"></script>
+  <p class="footer-bottom">© 2026 AEGIS Tickets — Projet AEGIS (runtime C11, licence MIT/Apache-2.0)</p>
+</footer>
+
+<button class="cart-fab" id="cart-fab" aria-label="Ouvrir le panier"><span class="material-symbols-outlined">shopping_cart</span><span class="cart-badge" id="cart-badge" hidden>0</span></button>
+<div class="cart-overlay" id="cart-overlay" hidden></div>
+<aside class="cart-panel" id="cart-panel" hidden aria-label="Panier">
+  <div class="cart-head"><h2>Votre panier</h2><button class="icon-btn" id="cart-close" aria-label="Fermer le panier"><span class="material-symbols-outlined">close</span></button></div>
+  <div class="cart-items" id="cart-items" aria-live="polite"></div>
+  <div class="cart-totals" id="cart-totals"></div>
+  <div class="cart-promo"><label class="sr-only" for="promo-input">Code promo</label><input type="text" id="promo-input" placeholder="Code promo"><button class="btn btn-outline btn-sm" id="promo-apply">Appliquer</button></div>
+  <button class="btn btn-primary btn-lg" id="cart-pay">Payer</button>
+</aside>
+
+<div class="cookie-banner" id="cookie-banner" role="region" aria-label="Bandeau cookies">
+  <p>Nous utilisons des cookies pour améliorer votre expérience. <a href="mentions-legales.html">En savoir plus</a></p>
+  <div class="cookie-actions"><button class="btn btn-outline btn-sm" id="cookie-refuse">Refuser</button><button class="btn btn-primary btn-sm" id="cookie-accept">Accepter</button></div>
+</div>
+
+<script src="assets/js/events-data.js"></script>
+<script src="assets/js/cart-core.js"></script>
+<script src="assets/js/main.js"></script>
 </body>
 </html>

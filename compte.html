@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mon compte — AEGIS Tickets</title>
+<meta name="aegis-auth-token" content="dev-token-123">
+<link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+<a class="skip-link" href="#main">Aller au contenu principal</a>
+<header class="site-header"><nav class="nav-main" role="navigation" aria-label="Navigation principale">
+<a class="brand" href="index.html">🛡️ AEGIS Tickets</a>
+<button class="nav-toggle" id="nav-toggle" aria-expanded="false" aria-controls="nav-menu" aria-label="Menu">☰</button>
+<ul id="nav-menu" class="nav-menu" hidden>
+<li><a href="index.html">Accueil</a></li><li><a href="evenements.html">Événements</a></li>
+<li><a href="aide.html">Aide</a></li><li><a href="compte.html" aria-current="page">Mon compte</a></li><li><a href="mentions-legales.html">Mentions légales</a></li>
+</ul></nav></header>
+<main id="main">
+<section class="page-hero"><h1>Mon compte</h1><p class="hero-lead">Retrouvez vos billets et gérez votre profil.</p></section>
+
+<section class="account-profile card" aria-label="Profil">
+  <div class="profile-main">
+    <div class="avatar" aria-hidden="true">LR</div>
+    <div>
+      <h2 id="profil-title">Laury Ragouton</h2>
+      <p class="profile-mail" id="profile-mail">baciragouton@gmail.com</p>
+      <span class="profile-badge">✓ Compte vérifié · membre depuis 2026</span>
+    </div>
+    <button class="btn btn-outline btn-sm" id="edit-profile" type="button" aria-expanded="false" aria-controls="profile-form">Modifier le profil</button>
+  </div>
+  <form id="profile-form" class="profile-form" hidden aria-label="Modifier le profil">
+    <div class="form-row"><label for="pf-prenom">Prénom</label><input type="text" id="pf-prenom" required minlength="2" autocomplete="given-name"></div>
+    <div class="form-row"><label for="pf-nom">Nom</label><input type="text" id="pf-nom" required minlength="2" autocomplete="family-name"></div>
+    <div class="form-row"><label for="pf-email">E-mail</label><input type="email" id="pf-email" required autocomplete="email"></div>
+    <div class="form-row"><label for="pf-adresse">Adresse postale</label><textarea id="pf-adresse" rows="2" autocomplete="street-address"></textarea></div>
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary btn-sm">Enregistrer</button>
+      <button type="button" class="btn btn-outline btn-sm" id="pf-cancel">Annuler</button>
+    </div>
+    <p class="form-msg" id="pf-msg" role="status" aria-live="polite"></p>
+  </form>
+</section>
+
+<section class="stats-bar" aria-label="Vos statistiques">
+  <div class="stat-item"><span class="stat-number" id="stat-billets">0</span><span class="stat-label">billets achetés</span></div>
+  <div class="stat-item"><span class="stat-number" id="stat-total">0,00 €</span><span class="stat-label">dépenses</span></div>
+  <div class="stat-item"><span class="stat-number" id="stat-events">0</span><span class="stat-label">événements</span></div>
+</section>
+
+<section aria-label="Mes billets">
+  <div class="section-head">
+    <h2>Mes billets</h2>
+    <button class="btn btn-outline btn-sm" id="export-csv">Exporter CSV</button>
+  </div>
+  <div class="search-bar" role="search">
+    <label class="sr-only" for="ticket-search">Rechercher un billet</label>
+    <input type="search" id="ticket-search" placeholder="Rechercher un billet…">
+  </div>
+  <div class="chips" role="group" aria-label="Filtrer les billets">
+    <button class="chip is-active" data-tfilter="all">Tous</button>
+    <button class="chip" data-tfilter="upcoming">À venir</button>
+    <button class="chip" data-tfilter="past">Passés</button>
+  </div>
+  <div class="tickets-list" id="tickets-list" aria-live="polite"></div>
+  <p class="no-result" id="no-tickets" hidden>Aucun billet pour le moment.</p>
+</section>
+</main>
+<footer class="site-footer"><p class="footer-bottom">© 2026 AEGIS Tickets</p></footer>
+<button class="cart-fab" id="cart-fab" aria-label="Panier">🛒<span class="cart-badge" id="cart-badge" hidden>0</span></button>
+<script src="assets/js/cart-core.js"></script><script src="assets/js/main.js"></script>
+</body></html>
