@@ -233,3 +233,15 @@ body.has-cookie-banner { padding-bottom:96px; }
   .btn-sm { min-height:44px; }
 }
 .btn-sm { min-height:44px; }
+/* FAQ : cartes propres, indicateur animé, contenu aéré */
+details.card { margin-bottom:.7rem; }
+details.card summary { list-style:none; position:relative; padding-right:2.4rem; }
+details.card summary::-webkit-details-marker { display:none; }
+details.card summary::after { content:"expand_more"; font-family:'Material Symbols Outlined'; position:absolute; right:1.1rem; top:50%; transform:translateY(-50%); transition:transform .2s; color:var(--primary); }
+details.card[open] summary::after { transform:translateY(-50%) rotate(180deg); }
+details.card .card-body { padding-top:.2rem; }
+/* Formulaire : grille aérée, labels bien visibles */
+.contact-form { display:grid; gap:1rem; padding:1.4rem; }
+.contact-form .form-row { gap:.4rem; }
+.contact-form label { font-size:.95rem; }
+.contact-form .btn { justify-self:start; }
