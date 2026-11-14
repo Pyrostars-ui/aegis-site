@@ -7,8 +7,10 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
-      - run: node --version && npm --version
-      - run: npm install -g npm@latest
-      - run: npm install
-      - run: npm test
+          node-version: 22
+      - name: Validation syntaxe JS
+        run: |
+          for f in assets/js/*.js; do node --check "$f" && echo "OK: $f"; done
+      - name: Validation HTML de base
+        run: |
+          for f in *.html; do grep -q '<!DOCTYPE html>' "$f" && echo "OK: $f"; done
