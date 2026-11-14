@@ -1,0 +1,90 @@
+name: Security Audit
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  secrets:
+    name: Gitleaks (secrets — bloquant)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  sca:
+    name: Trivy (SCA — CRITICAL bloquant, HIGH rapport)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Trivy CRITICAL (exit 1 si trouvé)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          severity: 'CRITICAL'
+          exit-code: '1'
+          format: 'json'
+          output: 'trivy-critical.json'
+      - name: Trivy HIGH (rapport non bloquant)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          severity: 'HIGH'
+          exit-code: '0'
+          format: 'json'
+          output: 'trivy-high.json'
+
+  sast:
+    name: Semgrep (SAST)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - name: Install semgrep
+        run: pip install semgrep
+      - name: Semgrep scan
+        run: semgrep scan --config auto --metrics=off --json -o semgrep-report.json .
+        continue-on-error: true
+
+  dast:
+    name: Nuclei (DAST — non bloquant)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Start static server
+        run: |
+          python3 -m http.server 8090 --directory . >/tmp/http.log 2>&1 &
+          echo $! > /tmp/http.pid
+          for i in $(seq 1 20); do curl -sf http://127.0.0.1:8090 >/dev/null && break; sleep 1; done
+      - uses: projectdiscovery/nuclei-action@main
+        with:
+          target: http://127.0.0.1:8090
+          json: true
+          output: nuclei-report.jsonl
+      - name: Stop server
+        if: always()
+        run: kill $(cat /tmp/http.pid) 2>/dev/null || true
+
+  upload:
+    name: Archive reports
+    needs: [sca, sast, dast]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - uses: actions/upload-artifact@v4
+        with:
+          name: security-reports
+          path: |
+            trivy-critical.json
+            trivy-high.json
+            semgrep-report.json
+            nuclei-report.jsonl
+          if-no-files-found: ignore
