@@ -226,3 +226,10 @@ body.has-cookie-banner { padding-bottom:96px; }
 .temoignage-author { display:flex; flex-direction:column; font-style:normal; }
 .temoignage-author strong { font-family:var(--font-display); color:var(--primary); }
 .temoignage-author span { font-size:.82rem; color:var(--muted); }
+
+.hero-kicker { color:#4a0e2e; }
+/* Correctifs QA : contraste kicker + boutons sm >= 44px */
+@media (max-width:720px) {
+  .btn-sm { min-height:44px; }
+}
+.btn-sm { min-height:44px; }
