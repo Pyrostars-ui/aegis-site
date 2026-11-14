@@ -190,3 +190,12 @@ body.has-cookie-banner { padding-bottom:96px; }
 .card-img { width:100%; height:160px; object-fit:cover; }
 .event-hero-img { width:100%; height:320px; object-fit:cover; }
 .hero-bg { width:100%; height:100%; object-fit:cover; }
+/* CTA vifs */
+.btn-cta { background: linear-gradient(120deg, var(--secondary), #ffb347); color:#fff; box-shadow:0 8px 24px rgba(255,92,138,.45); font-size:1.1rem; }
+.btn-cta:hover { transform:translateY(-2px); box-shadow:0 12px 30px rgba(255,92,138,.55); }
+.btn-ghost { background:rgba(255,255,255,.12); color:#fff; border-color:rgba(255,255,255,.6); backdrop-filter:blur(4px); }
+.btn-ghost:hover { background:rgba(255,255,255,.22); }
+.hero-trust { list-style:none; display:flex; gap:1.2rem; flex-wrap:wrap; padding:0; margin:1.4rem 0 0; font-size:.9rem; }
+.hero-trust li { display:inline-flex; align-items:center; gap:.35rem; }
+.hero-trust .material-symbols-outlined { font-size:1.1rem; color:#7dffd4; }
+.hero-content h1 { text-shadow:0 2px 18px rgba(0,0,0,.35); }
