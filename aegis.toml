@@ -1,0 +1,13 @@
+[site]
+title = "AEGIS Tickets"
+description = "Billetterie officielle AEGIS Tickets — Événements exclusifs"
+lang = "fr"
+
+[backend]
+port = 8090
+token = "[REDACTED]"
+static_root = "/tmp/aegis-tickets"
+
+[auth]
+channels = ["header", "query", "cookie"]
+cookie_name = "aegis_token"

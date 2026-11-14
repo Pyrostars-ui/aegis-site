@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>AEGIS Tickets — Billetterie officielle</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Billetterie officielle AEGIS Tickets — Événements exclusifs">
+  <meta name="aegis-auth-token" content="[REDACTED]">
+  <link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+  <header>
+    <div class="skip-link"><a href="#main">Aller au contenu</a></div>
+    <nav class="nav-main" role="navigation" aria-label="Principal">
+      <div class="nav-brand brand">AEGIS <span class="logo-symbol">🛡️</span> Tickets</div>
+      <button class="nav-toggle" aria-expanded="false" aria-controls="nav-menu">Menu</button>
+      <ul id="nav-menu" hidden>
+        <li><a href="index.html">Accueil</a></li>
+        <li><a href="evenements.html">Événements</a></li>
+        <li><a href="aide.html">Aide</a></li>
+        <li><a href="compte.html">Mon compte</a></li>
+        <li><a href="mentions-legales.html">Mentions légales</a></li>
+      </ul>
+    </nav>
+  </header>
+  <main id="main">
+    <section class="page-hero">
+      <div class="hero-bg"></div>
+      <div class="hero-content">
+        <h1>Billetterie officielle AEGIS</h1>
+        <p class="hero-lead">Événements exclusifs • Paiement sécurisé • Accès instantané</p>
+        <a href="evenements.html" class="btn btn-primary btn-lg">Voir les événements</a>
+      </div>
+    </section>
+    <section class="stats-bar">
+      <div class="stat-item"><span class="stat-number">0</span><span class="stat-label">billets achetés</span></div>
+      <div class="stat-item"><span class="stat-number">0,00 €</span><span class="stat-label">dépenses</span></div>
+      <div class="stat-item"><span class="stat-number">0</span><span class="stat-label">événements</span></div>
+    </section>
+  </main>
+  <footer>
+    <p>© 2026 AEGIS Tickets. Tous droits réservés.</p>
+  </footer>
+  <div class="cart-fab" id="cart-fab" aria-label="Panier">🛒 <span class="cart-badge" hidden>0</span></div>
+  <div class="cart-overlay" id="cart-overlay" hidden aria-label="Panier"></div>
+  <div class="cookie-banner" id="cookie-banner">
+    <p>Nous utilisons des cookies pour améliorer votre expérience. <button id="cookie-accept">Accepter</button></p>
+  </div>
+  <script type="module" src="assets/js/main.js"></script>
+</body>
+</html>
