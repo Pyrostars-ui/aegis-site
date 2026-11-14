@@ -40,7 +40,7 @@
       a.href = 'evenement.html?id=' + encodeURIComponent(ev.id);
       a.setAttribute('data-category', ev.category);
       a.innerHTML =
-        '<img class="card-img" src="' + (ev.img || 'assets/img/hero-concert.jpg') + '" alt="" loading="lazy">' +
+        '<img class="card-img" src="' + ev.img + '" alt="" loading="lazy" onerror="this.src=\'assets/img/hero-concert.jpg\'">' +
         '<div class="card-body">' +
         '<span class="card-tag">' + ev.catLabel + '</span>' +
         '<h3 class="card-title-link">' + ev.title + '</h3>' +
