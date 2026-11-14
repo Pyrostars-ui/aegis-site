@@ -202,7 +202,7 @@
 
   /* ===== Compte : profil éditable ===== */
   var PKEY = 'aegis-profile';
-  function defP() { return { prenom: 'Laury', nom: 'Ragouton', email: 'baciragouton@gmail.com', adresse: '' }; }
+  function defP() { return { prenom: 'Laury', nom: 'Ragouton', email: 'baciragouton@gmail.com', tel: '', adresse: '' }; }
   function loadP() { try { return Object.assign(defP(), JSON.parse(localStorage.getItem(PKEY) || '{}')); } catch (e) { return defP(); } }
   var editBtn = document.getElementById('edit-profile');
   var pform = document.getElementById('profile-form');
@@ -218,6 +218,7 @@
       document.getElementById('pf-prenom').value = p.prenom;
       document.getElementById('pf-nom').value = p.nom;
       document.getElementById('pf-email').value = p.email || '';
+      document.getElementById('pf-tel').value = p.tel || '';
       document.getElementById('pf-adresse').value = p.adresse || '';
     }
     editBtn.addEventListener('click', function () {
@@ -236,10 +237,11 @@
       var prenom = document.getElementById('pf-prenom').value.trim();
       var nom = document.getElementById('pf-nom').value.trim();
       var email = document.getElementById('pf-email').value.trim();
+      var tel = document.getElementById('pf-tel').value.trim();
       var adresse = document.getElementById('pf-adresse').value.trim();
       if (prenom.length < 2 || nom.length < 2) { msg.textContent = 'Prénom et nom requis (2 caractères min).'; msg.className = 'form-msg ko'; return; }
       if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { msg.textContent = 'Adresse e-mail invalide.'; msg.className = 'form-msg ko'; return; }
-      localStorage.setItem(PKEY, JSON.stringify({ prenom: prenom, nom: nom, email: email, adresse: adresse }));
+      localStorage.setItem(PKEY, JSON.stringify({ prenom: prenom, nom: nom, email: email, tel: tel, adresse: adresse }));
       renderP();
       msg.textContent = 'Profil mis à jour ✓'; msg.className = 'form-msg ok';
       setTimeout(function () { pform.hidden = true; editBtn.setAttribute('aria-expanded', 'false'); editBtn.textContent = 'Modifier le profil'; msg.textContent = ''; }, 1200);
