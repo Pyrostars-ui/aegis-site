@@ -187,3 +187,6 @@ body.has-cookie-banner { padding-bottom:96px; }
   .profile-main .btn { margin-left:0; }
   body.has-cookie-banner { padding-bottom:150px; }
 }
+.card-img { width:100%; height:160px; object-fit:cover; }
+.event-hero-img { width:100%; height:320px; object-fit:cover; }
+.hero-bg { width:100%; height:100%; object-fit:cover; }
