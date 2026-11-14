@@ -1,14 +1,19 @@
 (function () {
   'use strict';
-  /* ===== Auth token : meta tag + cookie depuis query param ===== */
-  var meta = document.querySelector('meta[name="aegis-auth-token"]');
-  var TOKEN = meta ? meta.content : '';
+  /* ===== Auth token : UNIQUEMENT cookie ou query param (jamais en dur dans le HTML) ===== */
   var qs = new URLSearchParams(location.search);
   if (qs.get('aegis_token')) {
     document.cookie = 'aegis_token=' + encodeURIComponent(qs.get('aegis_token')) + '; path=/; SameSite=Lax; Secure';
     qs.delete('aegis_token');
     var clean = location.pathname + (qs.toString() ? '?' + qs.toString() : '') + location.hash;
     history.replaceState({}, '', clean);
+  }
+  var TOKEN = decodeURIComponent((document.cookie.match(/(?:^|;\s*)aegis_token=([^;]+)/) || [])[1] || '');
+  /* Échappement HTML systématique pour tout contenu injecté via innerHTML (anti-XSS) */
+  function esc(v) {
+    return String(v == null ? '' : v)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   }
   function aegisPost(path, payload) {
     return fetch(path, {
@@ -40,13 +45,13 @@
       a.href = 'evenement.html?id=' + encodeURIComponent(ev.id);
       a.setAttribute('data-category', ev.category);
       a.innerHTML =
-        '<img class="card-img" src="' + ev.img + '" alt="" onerror="this.src=\'assets/img/hero-concert.jpg\'">' +
+        '<img class="card-img" src="' + esc(ev.img) + '" alt="" onerror="this.src=\'assets/img/hero-concert.jpg\'">' +
         '<div class="card-body">' +
-        '<span class="card-tag">' + ev.catLabel + '</span>' +
-        '<h3 class="card-title-link">' + ev.title + '</h3>' +
-        '<p class="card-meta">' + ev.date + ' · ' + ev.lieu + '</p>' +
-        '<p class="card-foot"><span class="card-price">' + ev.prix + ' €</span>' +
-        '<span class="card-stock' + (ev.stock < 20 ? ' low' : '') + '">' + (ev.stock < 20 ? 'Stock faible' : ev.stock + ' places') + '</span></p></div>';
+        '<span class="card-tag">' + esc(ev.catLabel) + '</span>' +
+        '<h3 class="card-title-link">' + esc(ev.title) + '</h3>' +
+        '<p class="card-meta">' + esc(ev.date) + ' · ' + esc(ev.lieu) + '</p>' +
+        '<p class="card-foot"><span class="card-price">' + esc(ev.prix) + ' €</span>' +
+        '<span class="card-stock' + (ev.stock < 20 ? ' low' : '') + '">' + (ev.stock < 20 ? 'Stock faible' : esc(ev.stock) + ' places') + '</span></p></div>';
       container.appendChild(a);
     });
   }
@@ -85,14 +90,14 @@
     var ev = window.AEGIS_EVENTS.find(function (e) { return e.id === id; }) || window.AEGIS_EVENTS[0];
     document.title = ev.title + ' — AEGIS Tickets';
     detail.innerHTML =
-      '<section class="event-hero"><img src="' + ev.img + '" alt="" class="event-hero-img">' +
-      '<div class="event-hero-body"><span class="card-tag">' + ev.catLabel + '</span>' +
-      '<h1>' + ev.title + '</h1><p class="card-meta">' + ev.date + ' · ' + ev.lieu + '</p></div></section>' +
-      '<section class="card"><div class="card-body"><h2>Programme</h2><p>' + ev.desc + '</p></div></section>' +
-      '<section class="card"><div class="card-body"><h2>Tarifs</h2><p><strong>' + ev.prix + ' €</strong> — place standard (TVA 20 % incluse dans le total du panier).</p></div></section>' +
+      '<section class="event-hero"><img src="' + esc(ev.img) + '" alt="" class="event-hero-img">' +
+      '<div class="event-hero-body"><span class="card-tag">' + esc(ev.catLabel) + '</span>' +
+      '<h1>' + esc(ev.title) + '</h1><p class="card-meta">' + esc(ev.date) + ' · ' + esc(ev.lieu) + '</p></div></section>' +
+      '<section class="card"><div class="card-body"><h2>Programme</h2><p>' + esc(ev.desc) + '</p></div></section>' +
+      '<section class="card"><div class="card-body"><h2>Tarifs</h2><p><strong>' + esc(ev.prix) + ' €</strong> — place standard (TVA 20 % incluse dans le total du panier).</p></div></section>' +
       '<section class="buy-box card"><div class="card-body">' +
-      '<p class="card-stock' + (ev.stock < 20 ? ' low' : '') + '">' + (ev.stock < 20 ? '⚠ Stock faible : ' + ev.stock + ' places' : ev.stock + ' places disponibles') + '</p>' +
-      '<button class="btn btn-primary btn-lg" id="ev-buy">Acheter — ' + ev.prix + ' €</button>' +
+      '<p class="card-stock' + (ev.stock < 20 ? ' low' : '') + '">' + (ev.stock < 20 ? '⚠ Stock faible : ' + esc(ev.stock) + ' places' : esc(ev.stock) + ' places disponibles') + '</p>' +
+      '<button class="btn btn-primary btn-lg" id="ev-buy">Acheter — ' + esc(ev.prix) + ' €</button>' +
       '</div></section>';
     var buyBtn = document.getElementById('ev-buy');
     if (buyBtn) buyBtn.addEventListener('click', function () {
@@ -136,11 +141,11 @@
     cart.forEach(function (it, idx) {
       var row = document.createElement('div');
       row.className = 'cart-item';
-      row.innerHTML = '<span class="ci-name">' + it.event + '</span>' +
+      row.innerHTML = '<span class="ci-name">' + esc(it.event) + '</span>' +
         '<span class="ci-qty"><button class="qty-btn" data-i="' + idx + '" data-d="-1" aria-label="Diminuer">−</button>' +
-        '<span>' + it.qty + '</span>' +
+        '<span>' + (Number(it.qty)||0) + '</span>' +
         '<button class="qty-btn" data-i="' + idx + '" data-d="1" aria-label="Augmenter">+</button></span>' +
-        '<span class="ci-price">' + (it.price * it.qty).toFixed(2) + ' €</span>' +
+        '<span class="ci-price">' + (Number(it.price)||0 * (Number(it.qty)||0)).toFixed(2) + ' €</span>' +
         '<button class="icon-btn ci-del" data-i="' + idx + '" aria-label="Supprimer"><span class="material-symbols-outlined">delete</span></button>';
       itemsEl.appendChild(row);
     });
@@ -160,10 +165,10 @@
     });
     var t = window.CartCore.computeTotals(cart, promoCode);
     if (totalsEl) totalsEl.innerHTML =
-      '<p>Sous-total : <strong>' + t.sousTotal.toFixed(2) + ' €</strong></p>' +
-      (t.remise > 0 ? '<p>Remise (' + promoCode + ') : −' + t.remise.toFixed(2) + ' €</p>' : '') +
-      '<p>HT : ' + t.ht.toFixed(2) + ' €</p><p>TVA 20 % : ' + t.tva.toFixed(2) + ' €</p>' +
-      '<p class="ttc">TTC : <strong>' + t.ttc.toFixed(2) + ' €</strong></p>';
+      '<p>Sous-total : <strong>' + (Number(t.sousTotal)||0).toFixed(2) + ' €</strong></p>' +
+      (t.remise > 0 ? '<p>Remise (' + esc(promoCode) + ') : −' + (Number(t.remise)||0).toFixed(2) + ' €</p>' : '') +
+      '<p>HT : ' + (Number(t.ht)||0).toFixed(2) + ' €</p><p>TVA 20 % : ' + (Number(t.tva)||0).toFixed(2) + ' €</p>' +
+      '<p class="ttc">TTC : <strong>' + (Number(t.ttc)||0).toFixed(2) + ' €</strong></p>';
   }
   var promoApply = document.getElementById('promo-apply');
   if (promoApply) promoApply.addEventListener('click', function () {
@@ -259,10 +264,10 @@
       shown.forEach(function (t) {
         var el = document.createElement('article');
         el.className = 'ticket card';
-        el.innerHTML = '<div class="card-body"><h3>' + t.event + ' ×' + t.qty + '</h3>' +
-          '<p class="card-meta">' + t.date + ' · Suivi ' + t.suivi + '</p>' +
-          '<p class="card-price">' + (t.price * t.qty).toFixed(2) + ' €</p>' +
-          '<div class="qr" aria-label="QR code du billet">▦ ' + t.suivi + '</div></div>';
+        el.innerHTML = '<div class="card-body"><h3>' + esc(t.event) + ' ×' + (Number(t.qty)||0) + '</h3>' +
+          '<p class="card-meta">' + esc(t.date) + ' · Suivi ' + esc(t.suivi) + '</p>' +
+          '<p class="card-price">' + ((Number(t.price)||0) * (Number(t.qty)||0)).toFixed(2) + ' €</p>' +
+          '<div class="qr" aria-label="QR code du billet">▦ ' + esc(t.suivi) + '</div></div>';
         tlist.appendChild(el);
       });
       var total = tickets.reduce(function (s, t) { return s + t.price * t.qty; }, 0);
