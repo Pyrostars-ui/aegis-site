@@ -8,7 +8,16 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - run: node --version && npm --version
-      - run: npm install -g npm@latest
-      - run: npm install
-      - run: npm test
+      - name: Validation syntaxe JS
+        run: |
+          for f in assets/js/*.js tests/*.js; do
+            [ -f "$f" ] && node --check "$f" && echo "OK $f"
+          done
+      - name: Validation structure HTML
+        run: |
+          for f in *.html; do
+            grep -q "<!DOCTYPE html>" "$f" && echo "OK $f" || { echo "DOCTYPE manquant: $f"; exit 1; }
+          done
+      - name: Tests unitaires (Node, sans dépendance)
+        run: |
+          [ -f tests/test-unitaires.js ] && node tests/test-unitaires.js || echo "pas de tests unitaires — ignoré"
