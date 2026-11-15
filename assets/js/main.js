@@ -209,11 +209,31 @@
       });
     });
     var t = window.CartCore.computeTotals(cart, promoCode);
-    if (totalsEl) totalsEl.innerHTML =
-      '<p>Sous-total : <strong>' + (Number(t.sousTotal)||0).toFixed(2) + ' €</strong></p>' +
-      (t.remise > 0 ? '<p>Remise (' + esc(promoCode) + ') : −' + (Number(t.remise)||0).toFixed(2) + ' €</p>' : '') +
-      '<p>HT : ' + (Number(t.ht)||0).toFixed(2) + ' €</p><p>TVA 20 % : ' + (Number(t.tva)||0).toFixed(2) + ' €</p>' +
-      '<p class="ttc">TTC : <strong>' + (Number(t.ttc)||0).toFixed(2) + ' €</strong></p>';
+    if (totalsEl) {
+      var makeLine = function (label, value, bold, className) {
+        var p = document.createElement('p');
+        if (className) p.className = className;
+        p.appendChild(document.createTextNode(label));
+        if (bold) {
+          var strong = document.createElement('strong');
+          strong.textContent = value;
+          p.appendChild(strong);
+        } else {
+          p.appendChild(document.createTextNode(value));
+        }
+        return p;
+      };
+      var lines = [
+        makeLine('Sous-total : ', (Number(t.sousTotal) || 0).toFixed(2) + ' €', true)
+      ];
+      if (t.remise > 0) {
+        lines.push(makeLine('Remise (' + String(promoCode || '') + ') : −', (Number(t.remise) || 0).toFixed(2) + ' €', false));
+      }
+      lines.push(makeLine('HT : ', (Number(t.ht) || 0).toFixed(2) + ' €', false));
+      lines.push(makeLine('TVA 20 % : ', (Number(t.tva) || 0).toFixed(2) + ' €', false));
+      lines.push(makeLine('TTC : ', (Number(t.ttc) || 0).toFixed(2) + ' €', true, 'ttc'));
+      totalsEl.replaceChildren.apply(totalsEl, lines);
+    }
   }
   var promoApply = document.getElementById('promo-apply');
   if (promoApply) promoApply.addEventListener('click', function () {
