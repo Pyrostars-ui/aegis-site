@@ -56,4 +56,11 @@ assert.strictEqual(C.validateEmail('user@bad..domain.fr').ok, false);
 assert.strictEqual(C.validateStructuredAddress({ rue: '12 Rue de Rivoli', cp: '75001', ville: 'Paris', pays: 'France' }).ok, true);
 assert.strictEqual(C.validateStructuredAddress({ rue: '12 Rue de Rivoli', cp: '75', ville: 'Paris', pays: 'France' }).ok, false);
 assert.strictEqual(C.validateStructuredAddress({ rue: 'Rue', cp: '75001', ville: 'Paris', pays: 'France' }).ok, false);
-console.log('✅ Tests unitaires : 29/29 OK');
+// Ticket metadata preservation in cart addItem
+var ticketCart = [];
+C.addItem(ticketCart, { id: 'comedy', title: 'Comedy Club Live', prix: 28, date: '9 novembre 2027', heure: '19h30', lieu: 'Casino de Paris', salle: 'Grande Salle' }, 2);
+assert.strictEqual(ticketCart[0].date, '9 novembre 2027');
+assert.strictEqual(ticketCart[0].heure, '19h30');
+assert.strictEqual(ticketCart[0].lieu, 'Casino de Paris');
+assert.strictEqual(ticketCart[0].salle, 'Grande Salle');
+console.log('✅ Tests unitaires : 33/33 OK');

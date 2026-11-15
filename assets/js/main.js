@@ -234,7 +234,7 @@
     }
     return { stringValue: String(v) };
   }
-  if ((grid || detail) && typeof fetch === 'function') {
+  if ((grid || detail || document.getElementById('tickets-list')) && typeof fetch === 'function') {
     fetch(FS_BASE + '/evenements?pageSize=50')
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (data) {
@@ -248,6 +248,7 @@
         window.AEGIS_EVENTS = remote;
         if (refreshFilters) refreshFilters();
         if (detail) renderDetail();
+        if (typeof renderTicketsGlobal === 'function') renderTicketsGlobal();
       })
       .catch(function () {
         if (grid && !window.AEGIS_EVENTS.length) {
@@ -667,7 +668,19 @@
           var gift = getGiftState();
           var giftPayload = gift && gift.active ? { nom: gift.nom, email: gift.email, message: gift.message } : null;
           cart.forEach(function (it) {
-            var ticket = { event: it.event, qty: it.qty, price: it.price, date: new Date().toISOString().slice(0, 10), suivi: suivi, status: 'upcoming' };
+            var evMatch = (window.AEGIS_EVENTS || []).find(function (e) { return e.id === it.eventId || e.title === it.event; });
+            var ticket = {
+              event: it.event,
+              eventId: it.eventId || (evMatch && evMatch.id) || '',
+              qty: it.qty,
+              price: it.price,
+              date: it.date || (evMatch && evMatch.date) || new Date().toISOString().slice(0, 10),
+              heure: it.heure || (evMatch && evMatch.heure) || defaultEventHeure(evMatch),
+              lieu: it.lieu || (evMatch && evMatch.lieu) || 'Lieu à confirmer',
+              salle: it.salle || (evMatch && evMatch.salle) || defaultEventSalle(evMatch),
+              suivi: suivi,
+              status: 'upcoming'
+            };
             if (giftPayload) ticket.cadeau = giftPayload;
             list.push(ticket);
           });
@@ -1037,6 +1050,30 @@
   }
 
   /* ===== Compte : billets ===== */
+  function defaultEventHeure(ev) {
+    var cat = ev && ev.category ? ev.category : '';
+    if (cat === 'sport') return '14h00';
+    if (cat === 'festival') return '18h00';
+    if (cat === 'theatre') return '19h30';
+    return '20h30';
+  }
+  function defaultEventSalle(ev) {
+    var cat = ev && ev.category ? ev.category : '';
+    if (cat === 'sport') return 'Tribune Principale';
+    if (cat === 'festival') return 'Scène Principale';
+    return 'Grande Salle';
+  }
+  function enrichTicketInfo(t) {
+    var ev = (window.AEGIS_EVENTS || []).find(function (e) {
+      return (t.eventId && e.id === t.eventId) || e.title === t.event;
+    });
+    return {
+      date: (ev && ev.date) || t.date || 'Date à confirmer',
+      heure: t.heure || (ev && ev.heure) || defaultEventHeure(ev),
+      lieu: t.lieu || (ev && ev.lieu) || 'Lieu à confirmer',
+      salle: t.salle || (ev && ev.salle) || defaultEventSalle(ev)
+    };
+  }
   var tlist = document.getElementById('tickets-list');
   var renderTicketsGlobal = null;
   if (tlist) {
@@ -1053,10 +1090,16 @@
       });
       document.getElementById('no-tickets').hidden = shown.length > 0;
       shown.forEach(function (t) {
+        var info = enrichTicketInfo(t);
         var el = document.createElement('article');
         el.className = 'ticket card';
         el.innerHTML = '<div class="card-body"><h3>' + esc(t.event) + ' ×' + (Number(t.qty)||0) + '</h3>' +
-          '<p class="card-meta">' + esc(t.date) + ' · Suivi ' + esc(t.suivi) + '</p>' +
+          '<div class="ticket-details">' +
+          '<p class="ticket-detail-row"><span class="ticket-detail-label">Date &amp; heure :</span> <span>' + esc(info.date) + ' · ' + esc(info.heure) + '</span></p>' +
+          '<p class="ticket-detail-row"><span class="ticket-detail-label">Lieu :</span> <span>' + esc(info.lieu) + '</span></p>' +
+          '<p class="ticket-detail-row"><span class="ticket-detail-label">Salle :</span> <span>' + esc(info.salle) + '</span></p>' +
+          '</div>' +
+          '<p class="card-meta">Suivi ' + esc(t.suivi) + '</p>' +
           '<p class="card-price">' + ((Number(t.price)||0) * (Number(t.qty)||0)).toFixed(2) + ' €</p>' +
           '<div class="qr" aria-label="QR code du billet">▦ ' + esc(t.suivi) + '</div></div>';
         tlist.appendChild(el);
@@ -1074,8 +1117,9 @@
     });
     document.getElementById('ticket-search').addEventListener('input', renderTickets);
     document.getElementById('export-csv').addEventListener('click', function () {
-      var csv = 'event,date,suivi,qty,price\n' + tickets.map(function (t) {
-        return [t.event, t.date, t.suivi, t.qty, t.price].join(',');
+      var csv = 'event,date,heure,lieu,salle,suivi,qty,price\n' + tickets.map(function (t) {
+        var info = enrichTicketInfo(t);
+        return [t.event, info.date, info.heure, info.lieu, info.salle, t.suivi, t.qty, t.price].join(',');
       }).join('\n');
       var a = document.createElement('a');
       a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);

@@ -17,7 +17,21 @@
   }
   function addItem(cart, ev, qty) {
     var found = cart.find(function (i) { return i.event === ev.title; });
-    if (found) { found.qty += qty || 1; } else { cart.push({ event: ev.title, price: Number(ev.prix) || Number(ev.price) || 0, qty: qty || 1, tarif: ev.tarif || 'standard', tarifLabel: ev.tarifLabel || 'Standard', cadeau: ev.cadeau || null }); }
+    if (found) { found.qty += qty || 1; } else {
+      cart.push({
+        event: ev.title,
+        eventId: ev.id || '',
+        price: Number(ev.prix) || Number(ev.price) || 0,
+        qty: qty || 1,
+        tarif: ev.tarif || 'standard',
+        tarifLabel: ev.tarifLabel || 'Standard',
+        date: ev.date || '',
+        heure: ev.heure || '',
+        lieu: ev.lieu || '',
+        salle: ev.salle || '',
+        cadeau: ev.cadeau || null
+      });
+    }
     return cart;
   }
   var PHONE_COUNTRIES = [
