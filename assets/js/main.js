@@ -57,6 +57,37 @@
       container.appendChild(a);
     });
   }
+  /* ===== Barre de recherche dans la navigation ===== */
+  var navSearchInput = null;
+  (function initNavSearch() {
+    var navMain = document.querySelector('.nav-main');
+    var brand = navMain ? navMain.querySelector('.brand') : null;
+    if (!navMain || !brand || document.getElementById('nav-search-form')) return;
+    var form = document.createElement('form');
+    form.id = 'nav-search-form';
+    form.className = 'nav-search';
+    form.setAttribute('role', 'search');
+    form.innerHTML =
+      '<label class="sr-only" for="nav-search-input">Rechercher un événement</label>' +
+      '<input type="search" id="nav-search-input" placeholder="Rechercher un événement…">' +
+      '<button type="submit" aria-label="Rechercher"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></button>';
+    brand.insertAdjacentElement('afterend', form);
+    navSearchInput = document.getElementById('nav-search-input');
+    var initialQ = new URLSearchParams(location.search).get('q');
+    if (initialQ) navSearchInput.value = initialQ;
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var qVal = navSearchInput.value.trim();
+      if (!document.getElementById('cards-grid')) {
+        location.href = qVal ? ('evenements.html?q=' + encodeURIComponent(qVal)) : 'evenements.html';
+      } else if (typeof refreshFilters === 'function') {
+        refreshFilters();
+        var gridEl = document.getElementById('cards-grid');
+        if (gridEl) gridEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    });
+  })();
+
   window.AEGIS_EVENTS = window.AEGIS_EVENTS || [];
   var refreshFilters = null;
   if (grid) {
@@ -66,8 +97,10 @@
     var chips = document.querySelectorAll('.chip[data-filter]');
     var noRes = document.getElementById('no-result');
     var activeFilter = 'all';
+    var urlQ = new URLSearchParams(location.search).get('q');
+    if (urlQ && search && !search.value) search.value = urlQ;
     function applyFilters() {
-      var q = search ? search.value.trim().toLowerCase() : '';
+      var q = ((navSearchInput && navSearchInput.value) || (search && search.value) || '').trim().toLowerCase();
       var list = window.AEGIS_EVENTS.filter(function (ev) {
         var okCat = activeFilter === 'all' || ev.category === activeFilter;
         var okQ = !q || (ev.title + ' ' + ev.lieu + ' ' + ev.catLabel).toLowerCase().indexOf(q) !== -1;
@@ -77,7 +110,15 @@
       if (noRes) noRes.hidden = list.length > 0;
     }
     refreshFilters = applyFilters;
-    if (search) search.addEventListener('input', applyFilters);
+    if (search) search.addEventListener('input', function () {
+      if (navSearchInput) navSearchInput.value = search.value;
+      applyFilters();
+    });
+    if (navSearchInput) navSearchInput.addEventListener('input', function () {
+      if (search) search.value = navSearchInput.value;
+      applyFilters();
+    });
+    if (urlQ) applyFilters();
     chips.forEach(function (c) {
       c.addEventListener('click', function () {
         chips.forEach(function (x) { x.classList.remove('is-active'); });
