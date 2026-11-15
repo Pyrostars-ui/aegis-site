@@ -47,4 +47,9 @@ assert.strictEqual(C.validateName('Jean@42', 'Prénom').ok, false);
 assert.strictEqual(C.validateAddress('12 Rue de Rivoli, 75001 Paris').ok, true);
 assert.strictEqual(C.validateAddress('12 Rue de Rivoli').ok, false);
 assert.strictEqual(C.validateAddress('Paris').ok, false);
-console.log('✅ Tests unitaires : 22/22 OK');
+// Email domain validation
+assert.strictEqual(C.validateEmail('Camille@Gmail.com').formatted, 'camille@gmail.com');
+assert.strictEqual(C.validateEmail('user@yopmail.com').ok, false);
+assert.strictEqual(C.validateEmail('user@localhost').ok, false);
+assert.strictEqual(C.validateEmail('user@bad..domain.fr').ok, false);
+console.log('✅ Tests unitaires : 26/26 OK');

@@ -134,7 +134,40 @@
     }
     return { ok: true, formatted: trimmed };
   }
-  var api = { TVA: TVA, PROMOS: PROMOS, computeTotals: computeTotals, applyPromo: applyPromo, makeTrackNumber: makeTrackNumber, addItem: addItem, formatPhoneInput: formatPhoneInput, validatePhone: validatePhone, sanitizeNameInput: sanitizeNameInput, validateName: validateName, validateAddress: validateAddress };
+  var BLOCKED_EMAIL_DOMAINS = {
+    'localhost': 1, 'local': 1, 'invalid': 1, 'test': 1, 'test.com': 1, 'example.com': 1, 'example.org': 1,
+    'example.net': 1, 'fake.com': 1, 'domain.com': 1, 'none.com': 1, 'null.com': 1, 'asdf.com': 1,
+    'mailinator.com': 1, 'yopmail.com': 1, 'yopmail.fr': 1, 'tempmail.com': 1, 'temp-mail.org': 1,
+    'guerrillamail.com': 1, '10minutemail.com': 1, 'throwawaymail.com': 1, 'trashmail.com': 1,
+    'sharklasers.com': 1, 'getnada.com': 1, 'dispostable.com': 1, 'maildrop.cc': 1, 'fakeinbox.com': 1
+  };
+  function validateEmail(raw) {
+    var em = String(raw || '').trim().toLowerCase();
+    if (!em || em.indexOf('@') === -1) {
+      return { ok: false, error: 'Adresse e-mail invalide (@ requis).' };
+    }
+    var parts = em.split('@');
+    if (parts.length !== 2 || !parts[0] || !parts[1] || /\s/.test(em)) {
+      return { ok: false, error: 'Format d’adresse e-mail invalide.' };
+    }
+    var local = parts[0], domain = parts[1];
+    if (!/^[a-z0-9.!#$%&'*+/=?^_`{|}~-]+$/i.test(local) || local.charAt(0) === '.' || local.slice(-1) === '.' || local.indexOf('..') !== -1) {
+      return { ok: false, error: 'Identifiant e-mail invalide avant le @.' };
+    }
+    var labels = domain.split('.');
+    if (labels.length < 2 || labels.some(function (l) { return !l || !/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(l); })) {
+      return { ok: false, error: 'Domaine e-mail invalide (ex. nom@domaine.fr).' };
+    }
+    var tld = labels[labels.length - 1];
+    if (!/^[a-z]{2,24}$/.test(tld)) {
+      return { ok: false, error: 'Extension de domaine invalide (ex. .fr, .com).' };
+    }
+    if (BLOCKED_EMAIL_DOMAINS[domain] || BLOCKED_EMAIL_DOMAINS[tld]) {
+      return { ok: false, error: 'Domaine e-mail non autorisé (' + domain + '). Utilisez une adresse valide.' };
+    }
+    return { ok: true, formatted: em };
+  }
+  var api = { TVA: TVA, PROMOS: PROMOS, computeTotals: computeTotals, applyPromo: applyPromo, makeTrackNumber: makeTrackNumber, addItem: addItem, formatPhoneInput: formatPhoneInput, validatePhone: validatePhone, sanitizeNameInput: sanitizeNameInput, validateName: validateName, validateAddress: validateAddress, validateEmail: validateEmail };
   if (typeof module !== 'undefined' && module.exports) { module.exports = api; }
   root.CartCore = api;
 })(typeof window !== 'undefined' ? window : globalThis);

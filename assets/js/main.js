@@ -428,9 +428,9 @@
       } else if (cNom.value.trim().length < 2) {
         cFeedback.textContent = 'Nom du bénéficiaire requis (2 caractères min).'; cFeedback.className = 'form-msg ko'; return false;
       }
-      var em = cEmail.value.trim().toLowerCase();
-      if (!em || em.indexOf('@') === -1 || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)) {
-        cFeedback.textContent = 'E-mail du bénéficiaire invalide (@ et domaine requis).'; cFeedback.className = 'form-msg ko'; return false;
+      var emCheck = window.CartCore && window.CartCore.validateEmail ? window.CartCore.validateEmail(cEmail.value) : { ok: /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(cEmail.value.trim()) };
+      if (!emCheck.ok) {
+        cFeedback.textContent = emCheck.error || 'E-mail du bénéficiaire invalide.'; cFeedback.className = 'form-msg ko'; return false;
       }
       if (/[<>{}[\]$]/.test(cMsg.value)) {
         cFeedback.textContent = 'Message cadeau : caractères spéciaux non autorisés.'; cFeedback.className = 'form-msg ko'; return false;
@@ -868,7 +868,11 @@
       } else if (prenom.length < 2 || nom.length < 2) {
         msg.textContent = 'Prénom et nom requis (2 caractères min).'; msg.className = 'form-msg ko'; return;
       }
-      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { msg.textContent = 'Adresse e-mail invalide.'; msg.className = 'form-msg ko'; return; }
+      if (window.CartCore && window.CartCore.validateEmail) {
+        var emCheck = window.CartCore.validateEmail(email);
+        if (!emCheck.ok) { msg.textContent = emCheck.error; msg.className = 'form-msg ko'; return; }
+        email = emCheck.formatted;
+      } else if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { msg.textContent = 'Adresse e-mail invalide.'; msg.className = 'form-msg ko'; return; }
       if (window.CartCore && window.CartCore.validatePhone) {
         var phoneCheck = window.CartCore.validatePhone(tel);
         if (!phoneCheck.ok) { msg.textContent = phoneCheck.error; msg.className = 'form-msg ko'; return; }
@@ -962,7 +966,7 @@
     if (acc) acc.addEventListener('click', function () { localStorage.setItem('aegis-cookies', '1'); banner.hidden = true; });
     if (ref) ref.addEventListener('click', function () { localStorage.setItem('aegis-cookies', '0'); banner.hidden = true; });
   }
-  /* ===== Normalisation automatique en minuscules des champs e-mail ===== */
+  /* ===== Normalisation automatique en minuscules & blocage domaines invalides des champs e-mail ===== */
   document.querySelectorAll('input[type="email"]').forEach(function (emailEl) {
     emailEl.addEventListener('input', function () {
       var lower = emailEl.value.toLowerCase();
@@ -971,6 +975,13 @@
         emailEl.value = lower;
         if (typeof pos === 'number') emailEl.setSelectionRange(pos, pos);
       }
+      emailEl.setCustomValidity('');
+    });
+    emailEl.addEventListener('blur', function () {
+      var val = emailEl.value.trim();
+      if (!val || !window.CartCore || !window.CartCore.validateEmail) return;
+      var res = window.CartCore.validateEmail(val);
+      emailEl.setCustomValidity(res.ok ? '' : res.error);
     });
   });
 
@@ -1011,6 +1022,11 @@
   if (nl) nl.addEventListener('submit', function (e) {
     e.preventDefault();
     var nlMsg = document.getElementById('nl-msg');
+    var nlEmail = document.getElementById('nl-email');
+    if (nlEmail && window.CartCore && window.CartCore.validateEmail) {
+      var res = window.CartCore.validateEmail(nlEmail.value);
+      if (!res.ok) { nlMsg.className = 'form-msg ko'; nlMsg.textContent = res.error; return; }
+    }
     nlMsg.className = 'form-msg ok';
     nlMsg.textContent = 'Merci ! Inscription enregistrée ✓';
     nl.reset();
@@ -1019,6 +1035,11 @@
   if (cf) cf.addEventListener('submit', function (e) {
     e.preventDefault();
     var cfMsg = document.getElementById('cf-msg-out');
+    var cfEmail = cf.querySelector('input[type="email"]');
+    if (cfEmail && window.CartCore && window.CartCore.validateEmail) {
+      var res = window.CartCore.validateEmail(cfEmail.value);
+      if (!res.ok) { cfMsg.className = 'form-msg ko'; cfMsg.textContent = res.error; return; }
+    }
     cfMsg.className = 'form-msg ok';
     cfMsg.textContent = 'Message envoyé ✓ Nous revenons vers vous rapidement.';
     cf.reset();
