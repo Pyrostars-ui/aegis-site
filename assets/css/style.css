@@ -197,6 +197,9 @@ details.card[open] summary { border-bottom:1px solid var(--outline); }
 .footer-cols a { display:inline-block; min-height:44px; line-height:44px; text-decoration:none; color:var(--on-surface); }
 .footer-cols a:hover { color:var(--primary); }
 .footer-cols h3 { margin-top:0; }
+.footer-links { display:flex; justify-content:center; flex-wrap:wrap; gap:1.2rem; margin-bottom:.6rem; }
+.footer-links a { display:inline-block; min-height:44px; line-height:44px; text-decoration:none; color:var(--on-surface); font-weight:500; }
+.footer-links a:hover { color:var(--primary); }
 .newsletter-form { display:flex; gap:.5rem; }
 .footer-bottom { text-align:center; color:var(--muted); font-size:.85rem; max-width:1200px; margin:2rem auto 0; }
 
