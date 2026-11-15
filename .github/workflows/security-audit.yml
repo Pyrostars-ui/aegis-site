@@ -3,6 +3,16 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
+    inputs:
+      target_url:
+        description: 'URL de staging/production pour DAST complet (Nuclei, Nikto, testssl.sh)'
+        required: false
+        type: string
+        default: ''
+
+permissions:
+  contents: read
 
 jobs:
   secrets:
@@ -16,41 +26,73 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  sca:
-    name: Trivy (SCA — CRITICAL bloquant, HIGH rapport)
+  ci-and-docker-lint:
+    name: Actionlint & Hadolint (CI & Docker — bloquant)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Trivy CRITICAL (exit 1 si trouvé)
+      - name: Run actionlint
+        run: |
+          bash <(curl -fsSL https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash)
+          ./actionlint
+      - name: Run hadolint on Dockerfiles
+        run: |
+          DOCKERFILES="$(find . -maxdepth 4 -type f \( -name 'Dockerfile' -o -name 'Dockerfile.*' \))"
+          if [ -z "$DOCKERFILES" ]; then
+            echo "Aucun Dockerfile détecté."
+            exit 0
+          fi
+          curl -fsSL https://github.com/hadolint/hadolint/releases/latest/download/hadolint-Linux-x86_64 -o /tmp/hadolint
+          chmod +x /tmp/hadolint
+          echo "$DOCKERFILES" | xargs -r /tmp/hadolint
+
+  sca:
+    name: Trivy (SCA + Misconfig — CRITICAL/HIGH bloquant)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Trivy Vuln CRITICAL,HIGH (exit 1 si trouvé)
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: 'fs'
           scan-ref: '.'
-          severity: 'CRITICAL'
+          severity: 'CRITICAL,HIGH'
           exit-code: '1'
           format: 'json'
-          output: 'trivy-critical.json'
-      - name: Trivy HIGH (rapport non bloquant)
+          output: 'trivy-vuln-critical-high.json'
+      - name: Trivy Vuln MEDIUM,LOW (rapport)
+        if: always()
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: 'fs'
           scan-ref: '.'
-          severity: 'HIGH'
+          severity: 'MEDIUM,LOW'
           exit-code: '0'
           format: 'json'
-          output: 'trivy-high.json'
+          output: 'trivy-vuln-medium-low.json'
+      - name: Trivy Config CRITICAL,HIGH (exit 1 si trouvé)
+        if: always()
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: 'config'
+          scan-ref: '.'
+          severity: 'CRITICAL,HIGH'
+          exit-code: '1'
+          format: 'json'
+          output: 'trivy-config-critical-high.json'
       - name: Upload Trivy reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: trivy-reports
           path: |
-            trivy-critical.json
-            trivy-high.json
+            trivy-vuln-critical-high.json
+            trivy-vuln-medium-low.json
+            trivy-config-critical-high.json
           if-no-files-found: ignore
 
   sast:
-    name: Semgrep (SAST — non bloquant)
+    name: Semgrep (SAST OWASP + Secrets — bloquant)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -60,8 +102,15 @@ jobs:
       - name: Install semgrep
         run: pip install semgrep
       - name: Semgrep scan
-        run: semgrep scan --config p/ci --metrics=off --json -o semgrep-report.json .
-        continue-on-error: true
+        run: |
+          semgrep scan \
+            --config p/ci \
+            --config p/owasp-top-ten \
+            --config p/security-audit \
+            --config p/secrets \
+            --error \
+            --metrics=off \
+            --json -o semgrep-report.json .
       - name: Upload Semgrep report
         if: always()
         uses: actions/upload-artifact@v4
@@ -71,26 +120,46 @@ jobs:
           if-no-files-found: ignore
 
   dast:
-    name: Nuclei (DAST — non bloquant)
+    name: DAST (Nuclei, Nikto, testssl.sh)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Start static server
+      - name: Start static server (si aucune target_url)
+        if: ${{ inputs.target_url == '' }}
         run: |
           python3 -m http.server 8090 --directory . >/tmp/http.log 2>&1 &
           echo $! > /tmp/http.pid
           for i in $(seq 1 20); do curl -sf http://127.0.0.1:8090 >/dev/null && break; sleep 1; done
-      - name: Nuclei scan
+      - name: Set DAST target URL
+        run: |
+          TARGET="${{ inputs.target_url }}"
+          if [ -z "$TARGET" ]; then
+            TARGET="http://127.0.0.1:8090"
+          fi
+          echo "TARGET_URL=$TARGET" >> "$GITHUB_ENV"
+      - name: Nuclei scan (critical,high,medium,low)
         uses: projectdiscovery/nuclei-action@v3
         with:
-          args: -u http://127.0.0.1:8090 -jsonl -o nuclei-report.jsonl -silent
-      - name: Stop server
-        if: always()
+          args: -u ${{ env.TARGET_URL }} -severity critical,high,medium,low -jsonl -o nuclei-report.jsonl -silent
+      - name: Nikto & testssl.sh (si target_url distante)
+        if: ${{ inputs.target_url != '' }}
+        run: |
+          git clone --depth 1 https://github.com/sullo/nikto.git /tmp/nikto
+          perl /tmp/nikto/program/nikto.pl -h "${{ env.TARGET_URL }}" -maxtime 180s -output nikto-report.txt || true
+          if [[ "${{ env.TARGET_URL }}" == https://* ]]; then
+            git clone --depth 1 https://github.com/testssl/testssl.sh.git /tmp/testssl.sh
+            /tmp/testssl.sh/testssl.sh --quiet --jsonfile testssl-report.json "${{ env.TARGET_URL }}" || true
+          fi
+      - name: Stop static server
+        if: always() && inputs.target_url == ''
         run: kill $(cat /tmp/http.pid) 2>/dev/null || true
-      - name: Upload Nuclei report
+      - name: Upload DAST reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: nuclei-report
-          path: nuclei-report.jsonl
+          name: dast-reports
+          path: |
+            nuclei-report.jsonl
+            nikto-report.txt
+            testssl-report.json
           if-no-files-found: ignore
