@@ -271,6 +271,7 @@
   }
   function fsGetUserDoc(collection, uid, token) {
     return fetch(FS_BASE + '/' + collection + '/' + encodeURIComponent(uid), {
+      cache: 'no-store',
       headers: { 'Authorization': 'Bearer ' + token }
     }).then(function (r) { return r.ok ? r.json() : null; });
   }
