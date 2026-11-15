@@ -106,24 +106,26 @@ jobs:
           python-version: '3.x'
       - name: Install semgrep
         run: pip install semgrep
-      - name: Semgrep scan
+      - name: Semgrep scan (4 packs séquentiels)
         run: |
-          semgrep scan \
-            --config p/ci \
-            --config p/owasp-top-ten \
-            --config p/security-audit \
-            --config p/secrets \
-            -j 1 \
-            --max-memory 2048 \
-            --error \
-            --metrics=off \
-            --json -o semgrep-report.json .
+          STATUS=0
+          for pack in ci owasp-top-ten security-audit secrets; do
+            echo "=== Semgrep p/${pack} ==="
+            semgrep scan \
+              --config "p/${pack}" \
+              -j 1 \
+              --max-memory 2048 \
+              --error \
+              --metrics=off \
+              --json -o "semgrep-${pack}.json" . || STATUS=$?
+          done
+          exit "$STATUS"
       - name: Upload Semgrep report
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: semgrep-report
-          path: semgrep-report.json
+          path: semgrep-*.json
           if-no-files-found: ignore
 
   dast:
