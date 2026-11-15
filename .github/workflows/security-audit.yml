@@ -19,10 +19,10 @@ jobs:
     name: Gitleaks (secrets — bloquant)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
-      - uses: gitleaks/gitleaks-action@v2
+      - uses: gitleaks/gitleaks-action@v3
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -30,7 +30,7 @@ jobs:
     name: Actionlint & Hadolint (CI & Docker — bloquant)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Run actionlint
         run: |
           TAG="$(curl -fsSLI -o /dev/null -w '%{url_effective}' https://github.com/rhysd/actionlint/releases/latest | sed 's|.*/||')"
@@ -53,7 +53,7 @@ jobs:
     name: Trivy (SCA + Misconfig — CRITICAL/HIGH bloquant)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Trivy Vuln CRITICAL,HIGH (exit 1 si trouvé)
         uses: aquasecurity/trivy-action@v0.36.0
         with:
@@ -73,6 +73,7 @@ jobs:
           exit-code: '0'
           format: 'json'
           output: 'trivy-vuln-medium-low.json'
+          skip-setup-trivy: true
       - name: Trivy Config CRITICAL,HIGH (exit 1 si trouvé)
         if: always()
         uses: aquasecurity/trivy-action@v0.36.0
@@ -83,6 +84,7 @@ jobs:
           exit-code: '1'
           format: 'json'
           output: 'trivy-config-critical-high.json'
+          skip-setup-trivy: true
       - name: Upload Trivy reports
         if: always()
         uses: actions/upload-artifact@v4
@@ -98,7 +100,7 @@ jobs:
     name: Semgrep (SAST OWASP + Secrets — bloquant)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: actions/setup-python@v5
         with:
           python-version: '3.x'
@@ -126,7 +128,7 @@ jobs:
     name: DAST (Nuclei, Nikto, testssl.sh)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Start static server (si aucune target_url)
         if: ${{ inputs.target_url == '' }}
         run: |

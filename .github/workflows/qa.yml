@@ -16,8 +16,17 @@ jobs:
       - name: Validation structure HTML
         run: |
           for f in *.html; do
-            grep -q "<!DOCTYPE html>" "$f" && echo "OK $f" || { echo "DOCTYPE manquant: $f"; exit 1; }
+            if grep -q "<!DOCTYPE html>" "$f"; then
+              echo "OK $f"
+            else
+              echo "DOCTYPE manquant: $f"
+              exit 1
+            fi
           done
       - name: Tests unitaires (Node, sans dépendance)
         run: |
-          [ -f tests/test-unitaires.js ] && node tests/test-unitaires.js || echo "pas de tests unitaires — ignoré"
+          if [ -f tests/test-unitaires.js ]; then
+            node tests/test-unitaires.js
+          else
+            echo "pas de tests unitaires — ignoré"
+          fi
