@@ -161,6 +161,7 @@
   if (detail && window.AEGIS_EVENTS.length) renderDetail();
 
   /* ===== Catalogue dynamique Cloud Firestore ===== */
+  var FS_BASE = 'https://firestore.googleapis.com/v1/projects/com-example-myapplicatio-83790/databases/(default)/documents';
   function parseFsVal(v) {
     if (!v || typeof v !== 'object') return null;
     if ('stringValue' in v) return v.stringValue;
@@ -176,8 +177,21 @@
     }
     return null;
   }
+  function toFsVal(v) {
+    if (v === null || v === undefined) return { nullValue: null };
+    if (typeof v === 'boolean') return { booleanValue: v };
+    if (typeof v === 'number') return Number.isInteger(v) ? { integerValue: String(v) } : { doubleValue: v };
+    if (typeof v === 'string') return { stringValue: v };
+    if (Array.isArray(v)) return { arrayValue: { values: v.map(toFsVal) } };
+    if (typeof v === 'object') {
+      var fields = {};
+      Object.keys(v).forEach(function (k) { fields[k] = toFsVal(v[k]); });
+      return { mapValue: { fields: fields } };
+    }
+    return { stringValue: String(v) };
+  }
   if ((grid || detail) && typeof fetch === 'function') {
-    fetch('https://firestore.googleapis.com/v1/projects/com-example-myapplicatio-83790/databases/(default)/documents/evenements?pageSize=50')
+    fetch(FS_BASE + '/evenements?pageSize=50')
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (data) {
         if (!data || !Array.isArray(data.documents) || !data.documents.length) return;
@@ -200,11 +214,77 @@
       });
   }
 
-  /* ===== Panier v2 ===== */
+  /* ===== Panier v2 (synchronisé Cloud Firestore) ===== */
   var CART_KEY = 'aegis-cart';
+  var TICKETS_KEY = 'aegis-tickets-list';
   var promoCode = null;
   function getCart() { try { return JSON.parse(localStorage.getItem(CART_KEY)) || []; } catch (e) { return []; } }
-  function saveCart(c) { localStorage.setItem(CART_KEY, JSON.stringify(c)); }
+  function getTicketsLocal() { try { return JSON.parse(localStorage.getItem(TICKETS_KEY) || '[]'); } catch (e) { return []; } }
+  function pushCartToFs(c) {
+    if (typeof fetch !== 'function') return Promise.resolve();
+    return fetch(FS_BASE + '/paniers/client-1', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        fields: {
+          items: toFsVal(Array.isArray(c) ? c : []),
+          promoCode: toFsVal(promoCode || ''),
+          updatedAt: toFsVal(new Date().toISOString())
+        }
+      })
+    }).catch(function () {});
+  }
+  function saveCart(c) {
+    localStorage.setItem(CART_KEY, JSON.stringify(c));
+    pushCartToFs(c);
+  }
+  function pushTicketsToFs(list) {
+    if (typeof fetch !== 'function') return Promise.resolve();
+    return fetch(FS_BASE + '/billets/client-1', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        fields: {
+          items: toFsVal(Array.isArray(list) ? list : []),
+          updatedAt: toFsVal(new Date().toISOString())
+        }
+      })
+    }).catch(function () {});
+  }
+  function syncCartFromFs() {
+    if (typeof fetch !== 'function') return Promise.resolve();
+    return fetch(FS_BASE + '/paniers/client-1')
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (doc) {
+        if (!doc || !doc.fields) return;
+        var items = parseFsVal(doc.fields.items);
+        var remotePromo = parseFsVal(doc.fields.promoCode);
+        if (Array.isArray(items)) {
+          localStorage.setItem(CART_KEY, JSON.stringify(items));
+        }
+        promoCode = remotePromo ? window.CartCore.applyPromo(String(remotePromo)) : null;
+        updateBadge();
+        if (panel && !panel.hidden) renderCart();
+      })
+      .catch(function () {});
+  }
+  function syncTicketsFromFs(onDone) {
+    if (typeof fetch !== 'function') return Promise.resolve([]);
+    return fetch(FS_BASE + '/billets/client-1')
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (doc) {
+        if (doc && doc.fields) {
+          var items = parseFsVal(doc.fields.items);
+          if (Array.isArray(items)) {
+            localStorage.setItem(TICKETS_KEY, JSON.stringify(items));
+            if (typeof onDone === 'function') onDone(items);
+            return items;
+          }
+        }
+        return getTicketsLocal();
+      })
+      .catch(function () { return getTicketsLocal(); });
+  }
   var badge = document.getElementById('cart-badge');
   function updateBadge() {
     if (!badge) return;
@@ -214,7 +294,13 @@
   }
   var overlay = document.getElementById('cart-overlay');
   var panel = document.getElementById('cart-panel');
-  function openCart() { if (overlay) overlay.hidden = false; if (panel) panel.hidden = false; renderCart(); }
+  function openCart() {
+    if (overlay) overlay.hidden = false;
+    if (panel) panel.hidden = false;
+    renderCart();
+    syncCartFromFs();
+    syncTicketsFromFs(function () { if (panel && !panel.hidden) renderCart(); });
+  }
   function closeCart() { if (overlay) overlay.hidden = true; if (panel) panel.hidden = true; }
   var fab = document.getElementById('cart-fab');
   if (fab) fab.addEventListener('click', openCart);
@@ -222,6 +308,8 @@
   if (cartClose) cartClose.addEventListener('click', closeCart);
   if (overlay) overlay.addEventListener('click', closeCart);
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeCart(); });
+  window.addEventListener('focus', syncCartFromFs);
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) syncCartFromFs(); });
 
   function renderCart() {
     var itemsEl = document.getElementById('cart-items');
@@ -239,15 +327,20 @@
       if (totalsEl) totalsEl.replaceChildren();
       return;
     }
+    var boughtTickets = getTicketsLocal();
     cart.forEach(function (it, idx) {
       var qty = Number(it.qty) || 0;
       var unitPrice = Number(it.price) || 0;
       var lineTotal = (unitPrice * qty).toFixed(2);
+      var alreadyQty = boughtTickets.reduce(function (s, bt) {
+        return bt.event === it.event ? s + (Number(bt.qty) || 0) : s;
+      }, 0);
       var metaParts = [];
       if (it.tarifLabel) metaParts.push(it.tarifLabel);
       metaParts.push(unitPrice.toFixed(2) + ' € / billet');
       if (it.cadeau && it.cadeau.destinataire) metaParts.push('🎁 Cadeau : ' + it.cadeau.destinataire);
       else if (it.cadeau) metaParts.push('🎁 Cadeau');
+      if (alreadyQty > 0) metaParts.push('✓ Déjà acheté (' + alreadyQty + ')');
 
       var row = document.createElement('div');
       row.className = 'cart-item';
@@ -305,6 +398,7 @@
   if (promoApply) promoApply.addEventListener('click', function () {
     var v = (document.getElementById('promo-input').value || '').trim().toUpperCase();
     promoCode = window.CartCore.applyPromo(v);
+    saveCart(getCart());
     renderCart();
   });
   var payBtn = document.getElementById('cart-pay');
@@ -316,20 +410,28 @@
     aegisPost('/payer_et_expedier', { client_id: 1, total: t.ttc, id: Date.now() % 100000 })
       .then(function (res) {
         var suivi = (res && res.suivi) || window.CartCore.makeTrackNumber();
-        var list = JSON.parse(localStorage.getItem('aegis-tickets-list') || '[]');
-        cart.forEach(function (it) {
-          list.push({ event: it.event, qty: it.qty, price: it.price, date: new Date().toISOString().slice(0, 10), suivi: suivi, status: res && res.status === 'Expediee' ? 'upcoming' : 'upcoming' });
+        return syncTicketsFromFs().then(function (existing) {
+          var list = Array.isArray(existing) ? existing.slice() : [];
+          cart.forEach(function (it) {
+            list.push({ event: it.event, qty: it.qty, price: it.price, date: new Date().toISOString().slice(0, 10), suivi: suivi, status: 'upcoming' });
+          });
+          localStorage.setItem(TICKETS_KEY, JSON.stringify(list));
+          promoCode = null;
+          localStorage.removeItem(CART_KEY);
+          return Promise.all([pushTicketsToFs(list), pushCartToFs([])]).then(function () { return suivi; });
         });
-        localStorage.setItem('aegis-tickets-list', JSON.stringify(list));
-        localStorage.removeItem(CART_KEY);
-        promoCode = null;
+      })
+      .then(function (suivi) {
         updateBadge(); renderCart(); closeCart();
+        if (typeof renderTicketsGlobal === 'function') renderTicketsGlobal();
         alert('Paiement accepté ✅ Suivi : ' + suivi);
       })
       .catch(function () { alert('Erreur réseau lors du paiement.'); })
       .finally(function () { payBtn.disabled = false; });
   });
   updateBadge();
+  syncCartFromFs();
+  syncTicketsFromFs();
 
   /* ===== Compte : profil éditable ===== */
   var PKEY = 'aegis-profile';
@@ -382,10 +484,12 @@
 
   /* ===== Compte : billets ===== */
   var tlist = document.getElementById('tickets-list');
+  var renderTicketsGlobal = null;
   if (tlist) {
-    var tickets = JSON.parse(localStorage.getItem('aegis-tickets-list') || '[]');
+    var tickets = getTicketsLocal();
     var tFilter = 'all';
     function renderTickets() {
+      tickets = getTicketsLocal();
       var q = (document.getElementById('ticket-search').value || '').toLowerCase();
       tlist.innerHTML = '';
       var shown = tickets.filter(function (t) {
@@ -423,7 +527,9 @@
       a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
       a.download = 'mes-billets.csv'; a.click();
     });
+    renderTicketsGlobal = renderTickets;
     renderTickets();
+    syncTicketsFromFs(function () { renderTickets(); });
   }
 
   /* ===== Countdown ===== */

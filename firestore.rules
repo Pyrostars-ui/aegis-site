@@ -20,10 +20,78 @@ rules_version = '2';
 //   - desc: string (required) - Event description
 //   - tarifs: list<map> (required) - Ticket tiers ({ type: string, label: string, prix: number })
 //
+// Collection: paniers
+// Document ID: {cartId} (currently restricted to demo client "client-1"; no Firebase Auth)
+// Visibility: Cross-browser cart synchronization for demo client "client-1" only.
+// Fields:
+//   - items: list<map> (required, max 50 items) - Cart line items
+//   - promoCode: string (required, 0..32 chars) - Applied promo code (empty string if none)
+//   - updatedAt: string (required, 1..64 chars) - ISO 8601 client update timestamp
+//
+// Collection: billets
+// Document ID: {ticketId} (currently restricted to demo client "client-1"; no Firebase Auth)
+// Visibility: Cross-browser purchased tickets synchronization for demo client "client-1" only.
+// Fields:
+//   - items: list<map> (required, max 200 items) - Purchased ticket records
+//   - updatedAt: string (required, 1..64 chars) - ISO 8601 client update timestamp
+//
 // ===============================================================
 
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+
+    // Validate that the document contains all required fields
+    function hasRequiredFields(data, fields) {
+      return data.keys().hasAll(fields);
+    }
+
+    // Validate that the document contains only the allowed fields
+    function hasOnlyAllowedFields(data, fields) {
+      return data.keys().hasOnly(fields);
+    }
+
+    // Validate string type and length bounds
+    function isValidString(val, minLen, maxLen) {
+      return val is string && val.size() >= minLen && val.size() <= maxLen;
+    }
+
+    // Validate that a field is a list of maps within size limits
+    // Note: CEL cannot iterate all elements of an arbitrary-length list,
+    // so we enforce list type, max size, and verify the first element is a map when non-empty.
+    function isValidMapList(listVal, maxSize) {
+      return listVal is list &&
+             listVal.size() <= maxSize &&
+             (listVal.size() == 0 || listVal[0] is map);
+    }
+
+    // ===============================================================
+    // Domain Validators (Used in both create and update)
+    // ===============================================================
+
+    function isValidCart(data) {
+      let allowed = ['items', 'promoCode', 'updatedAt'];
+      return hasRequiredFields(data, allowed) &&
+             hasOnlyAllowedFields(data, allowed) &&
+             isValidMapList(data.items, 50) &&
+             isValidString(data.promoCode, 0, 32) &&
+             isValidString(data.updatedAt, 1, 64);
+    }
+
+    function isValidTickets(data) {
+      let allowed = ['items', 'updatedAt'];
+      return hasRequiredFields(data, allowed) &&
+             hasOnlyAllowedFields(data, allowed) &&
+             isValidMapList(data.items, 200) &&
+             isValidString(data.updatedAt, 1, 64);
+    }
+
+    // ===============================================================
+    // Collection Rules
+    // ===============================================================
 
     // Default-deny all reads and writes across the entire database.
     match /{document=**} {
@@ -35,6 +103,24 @@ service cloud.firestore {
     match /evenements/{eventId} {
       allow get, list: if true;
       allow create, update, delete: if false;
+    }
+
+    // Demo client shopping cart synchronization (no Firebase Auth yet).
+    // Restricted strictly to document ID 'client-1'; listing and deletion are denied.
+    match /paniers/{cartId} {
+      allow get: if cartId == 'client-1';
+      allow create: if cartId == 'client-1' && isValidCart(request.resource.data);
+      allow update: if cartId == 'client-1' && isValidCart(request.resource.data);
+      allow list, delete: if false;
+    }
+
+    // Demo client purchased tickets synchronization (no Firebase Auth yet).
+    // Restricted strictly to document ID 'client-1'; listing and deletion are denied.
+    match /billets/{ticketId} {
+      allow get: if ticketId == 'client-1';
+      allow create: if ticketId == 'client-1' && isValidTickets(request.resource.data);
+      allow update: if ticketId == 'client-1' && isValidTickets(request.resource.data);
+      allow list, delete: if false;
     }
   }
 }
