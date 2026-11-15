@@ -761,4 +761,109 @@
     document.getElementById('cf-msg-out').textContent = 'Message envoyé ✓ Nous revenons vers vous rapidement.';
     cf.reset();
   });
+
+  /* ===== Espace Administrateur (admin.html) ===== */
+  var adminPanel = document.getElementById('admin-panel');
+  if (adminPanel) {
+    var adminStatus = document.getElementById('admin-status');
+    var adminLoginLink = document.getElementById('admin-login-link');
+    var adminList = document.getElementById('admin-events-list');
+    var adminForm = document.getElementById('admin-event-form');
+    var aeMsg = document.getElementById('ae-msg');
+    function loadAdminEvents() {
+      fetch(FS_BASE + '/evenements?pageSize=50', { cache: 'no-store' })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (data) {
+          if (!data || !Array.isArray(data.documents)) return;
+          var evs = data.documents.map(function (doc) {
+            var f = doc.fields || {};
+            var o = { id: doc.name.split('/').pop() };
+            Object.keys(f).forEach(function (k) { o[k] = parseFsVal(f[k]); });
+            return o;
+          });
+          adminList.innerHTML = '';
+          evs.forEach(function (ev) {
+            var card = document.createElement('article');
+            card.className = 'card';
+            card.innerHTML = '<div class="card-body"><h3>' + esc(ev.title) + '</h3>' +
+              '<p class="card-meta">' + esc(ev.id) + ' · ' + esc(ev.date) + ' · ' + esc(ev.lieu) + '</p>' +
+              '<p class="card-price">' + esc(ev.prix) + ' € · Stock : ' + esc(ev.stock) + '</p>' +
+              '<div class="form-actions"><button type="button" class="btn btn-outline btn-sm ae-edit">Modifier</button>' +
+              '<button type="button" class="btn btn-outline btn-sm ae-del">Supprimer</button></div></div>';
+            card.querySelector('.ae-edit').addEventListener('click', function () {
+              document.getElementById('ae-id').value = ev.id || '';
+              document.getElementById('ae-title').value = ev.title || '';
+              document.getElementById('ae-category').value = ev.category || 'concert';
+              document.getElementById('ae-catlabel').value = ev.catLabel || 'Concert';
+              document.getElementById('ae-date').value = ev.date || '';
+              document.getElementById('ae-lieu').value = ev.lieu || '';
+              document.getElementById('ae-prix').value = ev.prix || 40;
+              document.getElementById('ae-stock').value = ev.stock || 0;
+              document.getElementById('ae-img').value = ev.img || 'assets/img/events/nova.jpg';
+              document.getElementById('ae-desc').value = ev.desc || '';
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            });
+            card.querySelector('.ae-del').addEventListener('click', function () {
+              if (!confirm('Supprimer « ' + ev.title + ' » ?')) return;
+              ensureFreshToken().then(function (a) {
+                if (!a) return;
+                return fetch(FS_BASE + '/evenements/' + encodeURIComponent(ev.id), {
+                  method: 'DELETE',
+                  headers: { 'Authorization': 'Bearer ' + a.idToken }
+                });
+              }).then(loadAdminEvents);
+            });
+            adminList.appendChild(card);
+          });
+        });
+    }
+    ensureFreshToken().then(function (a) {
+      if (!a) {
+        adminStatus.textContent = 'Connexion requise : connectez-vous avec le compte administrateur sur Mon compte.';
+        if (adminLoginLink) adminLoginLink.hidden = false;
+        return;
+      }
+      return fsGetUserDoc('admins', a.uid, a.idToken).then(function (doc) {
+        if (!doc || !doc.fields) {
+          adminStatus.textContent = 'Accès refusé : le compte ' + a.email + ' n’a pas le rôle administrateur.';
+          return;
+        }
+        adminStatus.textContent = 'Connecté en tant qu’administrateur (' + a.email + ') ✓';
+        adminPanel.hidden = false;
+        loadAdminEvents();
+      });
+    });
+    if (adminForm) {
+      document.getElementById('ae-reset').addEventListener('click', function () { adminForm.reset(); aeMsg.textContent = ''; });
+      adminForm.addEventListener('submit', function (e) {
+        e.preventDefault();
+        var id = document.getElementById('ae-id').value.trim().toLowerCase().replace(/[^a-z0-9-]+/g, '-');
+        var prix = Number(document.getElementById('ae-prix').value) || 40;
+        var fields = {
+          id: toFsVal(id),
+          title: toFsVal(document.getElementById('ae-title').value.trim()),
+          category: toFsVal(document.getElementById('ae-category').value.trim()),
+          catLabel: toFsVal(document.getElementById('ae-catlabel').value.trim()),
+          date: toFsVal(document.getElementById('ae-date').value.trim()),
+          lieu: toFsVal(document.getElementById('ae-lieu').value.trim()),
+          prix: toFsVal(prix),
+          stock: toFsVal(Number(document.getElementById('ae-stock').value) || 0),
+          img: toFsVal(document.getElementById('ae-img').value.trim()),
+          desc: toFsVal(document.getElementById('ae-desc').value.trim()),
+          tarifs: toFsVal([{ type: 'standard', label: 'Standard', prix: prix }, { type: 'vip', label: 'VIP', prix: Math.round(prix * 1.6) }])
+        };
+        aeMsg.textContent = 'Enregistrement…'; aeMsg.className = 'form-msg';
+        ensureFreshToken().then(function (a) {
+          if (!a) throw new Error('Non connecté');
+          return fsPatchUserDoc('evenements', id, fields, a.idToken);
+        }).then(function (r) {
+          if (!r.ok) throw new Error('HTTP ' + r.status);
+          aeMsg.textContent = 'Événement enregistré ✓'; aeMsg.className = 'form-msg ok';
+          loadAdminEvents();
+        }).catch(function (err) {
+          aeMsg.textContent = 'Erreur : ' + err.message; aeMsg.className = 'form-msg ko';
+        });
+      });
+    }
+  }
 })();
