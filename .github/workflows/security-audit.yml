@@ -130,31 +130,44 @@ jobs:
           if-no-files-found: ignore
 
   dast:
-    name: DAST (Nuclei, Nikto, testssl.sh)
+    name: DAST (OWASP ZAP, Nuclei, Nikto, testssl.sh)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
-      - name: Start static server (si aucune target_url)
-        if: ${{ inputs.target_url == '' }}
+      - name: Start ephemeral static server (si aucune URL staging/target)
+        if: ${{ inputs.target_url == '' && vars.STAGING_URL == '' }}
         run: |
-          python3 -m http.server 8090 --directory . >/tmp/http.log 2>&1 &
+          python3 -m http.server 8090 --bind 0.0.0.0 --directory . >/tmp/http.log 2>&1 &
           echo $! > /tmp/http.pid
           for _ in $(seq 1 20); do curl -sf http://127.0.0.1:8090 >/dev/null && break; sleep 1; done
-      - name: Set DAST target URL
+      - name: Set DAST target URLs
         env:
           INPUT_TARGET_URL: ${{ inputs.target_url }}
+          VAR_STAGING_URL: ${{ vars.STAGING_URL }}
         run: |
-          TARGET="$INPUT_TARGET_URL"
+          TARGET="${INPUT_TARGET_URL:-$VAR_STAGING_URL}"
           if [ -z "$TARGET" ]; then
+            DOCKER_HOST_IP="$(ip -4 addr show docker0 2>/dev/null | awk '/inet / {print $2}' | cut -d/ -f1 || true)"
             TARGET="http://127.0.0.1:8090"
+            ZAP_TARGET="http://${DOCKER_HOST_IP:-127.0.0.1}:8090"
+          else
+            ZAP_TARGET="$TARGET"
           fi
           echo "TARGET_URL=$TARGET" >> "$GITHUB_ENV"
+          echo "ZAP_TARGET_URL=$ZAP_TARGET" >> "$GITHUB_ENV"
       - name: Nuclei scan (critical,high,medium,low)
         uses: projectdiscovery/nuclei-action@cc153d0541e1adf8a42bbe31c0a4fb2376147538 # v3.1.1
         with:
           args: -u ${{ env.TARGET_URL }} -severity critical,high,medium,low -jsonl -o nuclei-report.jsonl -silent
-      - name: Nikto & testssl.sh (si target_url distante)
-        if: ${{ inputs.target_url != '' }}
+      - name: OWASP ZAP Baseline scan
+        uses: zaproxy/action-baseline@de8ad967d3548d44ef623df22cf95c3b0baf8b25 # v0.15.0
+        with:
+          target: ${{ env.ZAP_TARGET_URL }}
+          allow_issue_writing: false
+          fail_action: false
+          artifact_name: zap-scan-report
+      - name: Nikto & testssl.sh (si URL distante)
+        if: ${{ inputs.target_url != '' || vars.STAGING_URL != '' }}
         run: |
           git clone --depth 1 https://github.com/sullo/nikto.git /tmp/nikto
           perl /tmp/nikto/program/nikto.pl -h "$TARGET_URL" -maxtime 180s -output nikto-report.txt || true
@@ -164,8 +177,8 @@ jobs:
               /tmp/testssl.sh/testssl.sh --quiet --jsonfile testssl-report.json "$TARGET_URL" || true
               ;;
           esac
-      - name: Stop static server
-        if: always() && inputs.target_url == ''
+      - name: Stop ephemeral static server
+        if: always() && inputs.target_url == '' && vars.STAGING_URL == ''
         run: kill "$(cat /tmp/http.pid)" 2>/dev/null || true
       - name: Upload DAST reports
         if: always()
