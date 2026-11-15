@@ -55,8 +55,9 @@
       container.appendChild(a);
     });
   }
+  window.AEGIS_EVENTS = window.AEGIS_EVENTS || [];
   var refreshFilters = null;
-  if (grid && window.AEGIS_EVENTS) {
+  if (grid) {
     renderCards(window.AEGIS_EVENTS, grid);
     /* recherche + filtres */
     var search = document.getElementById('search-input');
@@ -157,9 +158,9 @@
       });
     }
   }
-  if (detail && window.AEGIS_EVENTS) renderDetail();
+  if (detail && window.AEGIS_EVENTS.length) renderDetail();
 
-  /* ===== Catalogue dynamique Cloud Firestore (repli sur events-data.js) ===== */
+  /* ===== Catalogue dynamique Cloud Firestore ===== */
   function parseFsVal(v) {
     if (!v || typeof v !== 'object') return null;
     if ('stringValue' in v) return v.stringValue;
@@ -190,7 +191,13 @@
         if (refreshFilters) refreshFilters();
         if (detail) renderDetail();
       })
-      .catch(function () { /* repli silencieux sur window.AEGIS_EVENTS */ });
+      .catch(function () {
+        if (grid && !window.AEGIS_EVENTS.length) {
+          var p = document.createElement('p');
+          p.textContent = 'Impossible de charger les événements depuis Firestore.';
+          grid.replaceChildren(p);
+        }
+      });
   }
 
   /* ===== Panier v2 ===== */

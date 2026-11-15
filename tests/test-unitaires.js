@@ -28,5 +28,7 @@ for (const page of ['index.html', 'aide.html', 'compte.html', 'evenement.html', 
   if (html.includes('material-symbols-outlined')) {
     assert.ok(html.includes('Material+Symbols+Outlined'), `${page} uses material-symbols-outlined without loading the font`);
   }
+  assert.ok(!html.includes('events-data.js'), `${page} should not load hardcoded events-data.js`);
 }
-console.log('✅ Tests unitaires : 8/8 OK');
+assert.ok(!fs.existsSync(path.join(__dirname, '..', 'assets', 'js', 'events-data.js')), 'events-data.js should be removed');
+console.log('✅ Tests unitaires : 9/9 OK');
