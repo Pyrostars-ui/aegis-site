@@ -167,7 +167,41 @@
     }
     return { ok: true, formatted: em };
   }
-  var api = { TVA: TVA, PROMOS: PROMOS, computeTotals: computeTotals, applyPromo: applyPromo, makeTrackNumber: makeTrackNumber, addItem: addItem, formatPhoneInput: formatPhoneInput, validatePhone: validatePhone, sanitizeNameInput: sanitizeNameInput, validateName: validateName, validateAddress: validateAddress, validateEmail: validateEmail };
+  function validateStructuredAddress(addr) {
+    var a = addr || {};
+    var rue = String(a.rue || '').trim().replace(/\s{2,}/g, ' ');
+    var comp = String(a.complement || '').trim().replace(/\s{2,}/g, ' ');
+    var cp = String(a.cp || '').replace(/\D/g, '');
+    var ville = String(a.ville || '').trim().replace(/\s{2,}/g, ' ');
+    var pays = String(a.pays || '').trim().replace(/\s{2,}/g, ' ');
+    if (rue.length < 4 || !/\p{L}{2,}/u.test(rue) || /[<>{}[\]$]/.test(rue)) {
+      return { ok: false, error: 'Numéro et rue obligatoires (4 caractères min., sans symboles invalides).' };
+    }
+    if (/[<>{}[\]$]/.test(comp)) {
+      return { ok: false, error: 'Complément d’adresse : caractères spéciaux non autorisés.' };
+    }
+    if (!/^\d{4,5}$/.test(cp)) {
+      return { ok: false, error: 'Code postal obligatoire (4 ou 5 chiffres).' };
+    }
+    var vCheck = validateName(ville, 'Ville');
+    if (!vCheck.ok) return vCheck;
+    var pCheck = validateName(pays, 'Pays');
+    if (!pCheck.ok) return pCheck;
+    var parts = [rue];
+    if (comp) parts.push(comp);
+    parts.push(cp + ' ' + vCheck.formatted);
+    parts.push(pCheck.formatted);
+    return {
+      ok: true,
+      rue: rue,
+      complement: comp,
+      cp: cp,
+      ville: vCheck.formatted,
+      pays: pCheck.formatted,
+      formatted: parts.join(', ')
+    };
+  }
+  var api = { TVA: TVA, PROMOS: PROMOS, computeTotals: computeTotals, applyPromo: applyPromo, makeTrackNumber: makeTrackNumber, addItem: addItem, formatPhoneInput: formatPhoneInput, validatePhone: validatePhone, sanitizeNameInput: sanitizeNameInput, validateName: validateName, validateAddress: validateAddress, validateStructuredAddress: validateStructuredAddress, validateEmail: validateEmail };
   if (typeof module !== 'undefined' && module.exports) { module.exports = api; }
   root.CartCore = api;
 })(typeof window !== 'undefined' ? window : globalThis);

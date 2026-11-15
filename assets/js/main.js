@@ -714,7 +714,26 @@
       document.getElementById('pf-nom').value = p.nom;
       document.getElementById('pf-email').value = p.email || '';
       document.getElementById('pf-tel').value = p.tel || '';
-      document.getElementById('pf-adresse').value = p.adresse || '';
+      var pfRue = document.getElementById('pf-rue');
+      var pfComp = document.getElementById('pf-complement');
+      var pfCp = document.getElementById('pf-cp');
+      var pfVille = document.getElementById('pf-ville');
+      var pfPays = document.getElementById('pf-pays');
+      if (pfRue && pfCp && pfVille && pfPays) {
+        if (p.rue || p.cp || p.ville) {
+          pfRue.value = p.rue || '';
+          if (pfComp) pfComp.value = p.complement || '';
+          pfCp.value = p.cp || '';
+          pfVille.value = p.ville || '';
+          pfPays.value = p.pays || 'France';
+        } else if (p.adresse) {
+          var m = String(p.adresse).match(/^(.*?)[,\s]+(\d{4,5})\s+([^,]+)(?:,\s*(.+))?$/);
+          pfRue.value = m ? m[1].trim() : p.adresse;
+          pfCp.value = m ? m[2] : '';
+          pfVille.value = m ? m[3].trim() : '';
+          pfPays.value = (m && m[4]) ? m[4].trim() : 'France';
+        }
+      }
     }
     if (authForm) {
       authForm.addEventListener('submit', function (e) {
@@ -814,7 +833,7 @@
     document.getElementById('pf-cancel').addEventListener('click', function () {
       pform.hidden = true; editBtn.setAttribute('aria-expanded', 'false'); editBtn.textContent = 'Modifier le profil'; renderP();
     });
-    ['pf-prenom', 'pf-nom', 'auth-prenom', 'auth-nom'].forEach(function (fieldId) {
+    ['pf-prenom', 'pf-nom', 'auth-prenom', 'auth-nom', 'pf-ville', 'pf-pays'].forEach(function (fieldId) {
       var el = document.getElementById(fieldId);
       if (el && window.CartCore && window.CartCore.sanitizeNameInput) {
         el.addEventListener('input', function () {
@@ -830,12 +849,22 @@
         if (pfTelInput.value !== formatted) pfTelInput.value = formatted;
       });
     }
-    var pfAdresseInput = document.getElementById('pf-adresse');
+    var pfRueInput = document.getElementById('pf-rue');
+    var pfCompInput = document.getElementById('pf-complement');
+    var pfCpInput = document.getElementById('pf-cp');
+    var pfVilleInput = document.getElementById('pf-ville');
+    var pfPaysInput = document.getElementById('pf-pays');
+    if (pfCpInput) {
+      pfCpInput.addEventListener('input', function () {
+        var cleanCp = pfCpInput.value.replace(/\D/g, '').slice(0, 5);
+        if (pfCpInput.value !== cleanCp) pfCpInput.value = cleanCp;
+      });
+    }
     var pfAdresseList = document.getElementById('pf-adresse-suggestions');
-    if (pfAdresseInput && pfAdresseList) {
+    if (pfRueInput && pfAdresseList) {
       var addrTimer = null;
-      pfAdresseInput.addEventListener('input', function () {
-        var q = pfAdresseInput.value.trim();
+      pfRueInput.addEventListener('input', function () {
+        var q = pfRueInput.value.trim();
         if (addrTimer) clearTimeout(addrTimer);
         if (q.length < 4) { pfAdresseList.hidden = true; pfAdresseList.innerHTML = ''; return; }
         addrTimer = setTimeout(function () {
@@ -846,14 +875,17 @@
               var feats = (data && Array.isArray(data.features)) ? data.features : [];
               if (!feats.length) { pfAdresseList.hidden = true; return; }
               feats.forEach(function (f) {
-                var label = f && f.properties && f.properties.label;
-                if (!label) return;
+                var props = f && f.properties;
+                if (!props || !props.label) return;
                 var li = document.createElement('li');
                 var btn = document.createElement('button');
                 btn.type = 'button';
-                btn.textContent = label;
+                btn.textContent = props.label;
                 btn.addEventListener('click', function () {
-                  pfAdresseInput.value = label;
+                  pfRueInput.value = props.name || props.label;
+                  if (pfCpInput && props.postcode) pfCpInput.value = props.postcode;
+                  if (pfVilleInput && props.city) pfVilleInput.value = props.city;
+                  if (pfPaysInput) pfPaysInput.value = 'France';
                   pfAdresseList.hidden = true;
                   pfAdresseList.innerHTML = '';
                 });
@@ -866,15 +898,7 @@
         }, 250);
       });
       document.addEventListener('click', function (ev) {
-        if (ev.target !== pfAdresseInput && !pfAdresseList.contains(ev.target)) pfAdresseList.hidden = true;
-      });
-      pfAdresseInput.addEventListener('blur', function () {
-        if (!window.CartCore || !window.CartCore.validateAddress) return;
-        var res = window.CartCore.validateAddress(pfAdresseInput.value);
-        pfAdresseInput.setCustomValidity(res.ok ? '' : res.error);
-      });
-      pfAdresseInput.addEventListener('input', function () {
-        pfAdresseInput.setCustomValidity('');
+        if (ev.target !== pfRueInput && !pfAdresseList.contains(ev.target)) pfAdresseList.hidden = true;
       });
     }
     pform.addEventListener('submit', function (e) {
@@ -884,7 +908,11 @@
       var nom = document.getElementById('pf-nom').value.trim();
       var email = document.getElementById('pf-email').value.trim();
       var tel = document.getElementById('pf-tel').value.trim();
-      var adresse = document.getElementById('pf-adresse').value.trim();
+      var rue = pfRueInput ? pfRueInput.value.trim() : '';
+      var complement = pfCompInput ? pfCompInput.value.trim() : '';
+      var cp = pfCpInput ? pfCpInput.value.trim() : '';
+      var ville = pfVilleInput ? pfVilleInput.value.trim() : '';
+      var pays = pfPaysInput ? pfPaysInput.value.trim() : 'France';
       if (window.CartCore && window.CartCore.validateName) {
         var vp = window.CartCore.validateName(prenom, 'Prénom');
         if (!vp.ok) { msg.textContent = vp.error; msg.className = 'form-msg ko'; return; }
@@ -907,13 +935,17 @@
         tel = phoneCheck.formatted;
         if (pfTelInput) pfTelInput.value = tel;
       }
-      if (window.CartCore && window.CartCore.validateAddress) {
-        var addrCheck = window.CartCore.validateAddress(adresse);
+      var adresse = '';
+      if (window.CartCore && window.CartCore.validateStructuredAddress) {
+        var addrCheck = window.CartCore.validateStructuredAddress({ rue: rue, complement: complement, cp: cp, ville: ville, pays: pays });
         if (!addrCheck.ok) { msg.textContent = addrCheck.error; msg.className = 'form-msg ko'; return; }
-        adresse = addrCheck.formatted;
-        if (pfAdresseInput) pfAdresseInput.value = adresse;
+        rue = addrCheck.rue; complement = addrCheck.complement; cp = addrCheck.cp; ville = addrCheck.ville; pays = addrCheck.pays; adresse = addrCheck.formatted;
+        if (pfRueInput) pfRueInput.value = rue;
+        if (pfCpInput) pfCpInput.value = cp;
+        if (pfVilleInput) pfVilleInput.value = ville;
+        if (pfPaysInput) pfPaysInput.value = pays;
       }
-      var updatedP = { prenom: prenom, nom: nom, email: email, tel: tel, adresse: adresse };
+      var updatedP = { prenom: prenom, nom: nom, email: email, tel: tel, rue: rue, complement: complement, cp: cp, ville: ville, pays: pays, adresse: adresse };
       localStorage.setItem(PKEY, JSON.stringify(updatedP));
       pushProfileToFs(updatedP);
       renderP();
@@ -1020,7 +1052,10 @@
       'pf-nom': 'Lettres uniquement (2 à 50 caractères, sans chiffres ni symboles).',
       'pf-email': 'Converti en minuscules. Les domaines jetables ou invalides sont bloqués.',
       'pf-tel': 'Format international (+33 6 12 34 56 78) ou 06..., chiffres uniquement.',
-      'pf-adresse': 'Saisissez votre rue puis choisissez une suggestion avec code postal (4-5 chiffres).',
+      'pf-rue': 'Saisissez le numéro et la rue puis choisissez une suggestion pour préremplir code postal et ville.',
+      'pf-cp': 'Code postal obligatoire (4 ou 5 chiffres).',
+      'pf-ville': 'Nom de la ville obligatoire (lettres uniquement).',
+      'pf-pays': 'Pays obligatoire (ex. France).',
       'cadeau-nom': 'Prénom et nom du bénéficiaire (2 lettres min., sans caractères spéciaux).',
       'cadeau-email': 'E-mail valide avec @ et domaine autorisé pour recevoir le billet cadeau.'
     };

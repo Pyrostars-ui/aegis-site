@@ -52,4 +52,8 @@ assert.strictEqual(C.validateEmail('Camille@Gmail.com').formatted, 'camille@gmai
 assert.strictEqual(C.validateEmail('user@yopmail.com').ok, false);
 assert.strictEqual(C.validateEmail('user@localhost').ok, false);
 assert.strictEqual(C.validateEmail('user@bad..domain.fr').ok, false);
-console.log('✅ Tests unitaires : 26/26 OK');
+// Structured postal address validation
+assert.strictEqual(C.validateStructuredAddress({ rue: '12 Rue de Rivoli', cp: '75001', ville: 'Paris', pays: 'France' }).ok, true);
+assert.strictEqual(C.validateStructuredAddress({ rue: '12 Rue de Rivoli', cp: '75', ville: 'Paris', pays: 'France' }).ok, false);
+assert.strictEqual(C.validateStructuredAddress({ rue: 'Rue', cp: '75001', ville: 'Paris', pays: 'France' }).ok, false);
+console.log('✅ Tests unitaires : 29/29 OK');

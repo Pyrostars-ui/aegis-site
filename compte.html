@@ -56,7 +56,16 @@
     <div class="form-row"><label for="pf-nom">Nom</label><input type="text" id="pf-nom" required minlength="2" maxlength="50" autocomplete="family-name"></div>
     <div class="form-row"><label for="pf-email">E-mail</label><input type="email" id="pf-email" required autocomplete="email"></div>
     <div class="form-row"><label for="pf-tel">Téléphone (format international)</label><input type="tel" id="pf-tel" inputmode="tel" maxlength="22" autocomplete="tel" placeholder="+33 6 12 34 56 78"></div>
-    <div class="form-row"><label for="pf-adresse">Adresse postale</label><div class="address-autocomplete"><input type="text" id="pf-adresse" autocomplete="street-address" maxlength="160" placeholder="Ex. 12 Rue de Rivoli, 75001 Paris"><ul class="address-suggestions" id="pf-adresse-suggestions" hidden role="listbox" aria-label="Suggestions d'adresse"></ul></div></div>
+    <fieldset class="address-fieldset">
+      <legend>Adresse postale</legend>
+      <div class="form-row"><label for="pf-rue">Numéro et rue *</label><div class="address-autocomplete"><input type="text" id="pf-rue" required minlength="4" maxlength="120" autocomplete="address-line1" placeholder="Ex. 12 Rue de Rivoli"><ul class="address-suggestions" id="pf-adresse-suggestions" hidden role="listbox" aria-label="Suggestions d'adresse"></ul></div></div>
+      <div class="form-row"><label for="pf-complement">Complément d'adresse <small>(facultatif)</small></label><input type="text" id="pf-complement" maxlength="80" autocomplete="address-line2" placeholder="Bâtiment, appartement, étage…"></div>
+      <div class="address-grid">
+        <div class="form-row"><label for="pf-cp">Code postal *</label><input type="text" id="pf-cp" required inputmode="numeric" maxlength="5" autocomplete="postal-code" placeholder="75001"></div>
+        <div class="form-row"><label for="pf-ville">Ville *</label><input type="text" id="pf-ville" required minlength="2" maxlength="60" autocomplete="address-level2" placeholder="Paris"></div>
+      </div>
+      <div class="form-row"><label for="pf-pays">Pays *</label><input type="text" id="pf-pays" required minlength="2" maxlength="50" autocomplete="country-name" value="France"></div>
+    </fieldset>
     <div class="form-actions">
       <button type="submit" class="btn btn-primary btn-sm">Enregistrer</button>
       <button type="button" class="btn btn-outline btn-sm" id="pf-cancel">Annuler</button>
