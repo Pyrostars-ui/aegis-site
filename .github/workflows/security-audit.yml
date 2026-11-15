@@ -132,10 +132,12 @@ jobs:
         run: |
           python3 -m http.server 8090 --directory . >/tmp/http.log 2>&1 &
           echo $! > /tmp/http.pid
-          for i in $(seq 1 20); do curl -sf http://127.0.0.1:8090 >/dev/null && break; sleep 1; done
+          for _ in $(seq 1 20); do curl -sf http://127.0.0.1:8090 >/dev/null && break; sleep 1; done
       - name: Set DAST target URL
+        env:
+          INPUT_TARGET_URL: ${{ inputs.target_url }}
         run: |
-          TARGET="${{ inputs.target_url }}"
+          TARGET="$INPUT_TARGET_URL"
           if [ -z "$TARGET" ]; then
             TARGET="http://127.0.0.1:8090"
           fi
@@ -148,14 +150,16 @@ jobs:
         if: ${{ inputs.target_url != '' }}
         run: |
           git clone --depth 1 https://github.com/sullo/nikto.git /tmp/nikto
-          perl /tmp/nikto/program/nikto.pl -h "${{ env.TARGET_URL }}" -maxtime 180s -output nikto-report.txt || true
-          if [[ "${{ env.TARGET_URL }}" == https://* ]]; then
-            git clone --depth 1 https://github.com/testssl/testssl.sh.git /tmp/testssl.sh
-            /tmp/testssl.sh/testssl.sh --quiet --jsonfile testssl-report.json "${{ env.TARGET_URL }}" || true
-          fi
+          perl /tmp/nikto/program/nikto.pl -h "$TARGET_URL" -maxtime 180s -output nikto-report.txt || true
+          case "$TARGET_URL" in
+            https://*)
+              git clone --depth 1 https://github.com/testssl/testssl.sh.git /tmp/testssl.sh
+              /tmp/testssl.sh/testssl.sh --quiet --jsonfile testssl-report.json "$TARGET_URL" || true
+              ;;
+          esac
       - name: Stop static server
         if: always() && inputs.target_url == ''
-        run: kill $(cat /tmp/http.pid) 2>/dev/null || true
+        run: kill "$(cat /tmp/http.pid)" 2>/dev/null || true
       - name: Upload DAST reports
         if: always()
         uses: actions/upload-artifact@v4
