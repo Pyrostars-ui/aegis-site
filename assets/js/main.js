@@ -780,16 +780,53 @@
     if (acc) acc.addEventListener('click', function () { localStorage.setItem('aegis-cookies', '1'); banner.hidden = true; });
     if (ref) ref.addEventListener('click', function () { localStorage.setItem('aegis-cookies', '0'); banner.hidden = true; });
   }
+  /* ===== Bulle info confirmation / erreur (tous formulaires) ===== */
+  var toastTimer = null;
+  function showInfoBubble(text, isError) {
+    if (!text) return;
+    var toast = document.getElementById('bp-toast');
+    if (!toast) {
+      toast = document.createElement('div');
+      toast.id = 'bp-toast';
+      toast.setAttribute('role', 'status');
+      toast.setAttribute('aria-live', 'polite');
+      document.body.appendChild(toast);
+    }
+    toast.className = 'toast-bubble ' + (isError ? 'toast-err' : 'toast-ok');
+    toast.innerHTML =
+      '<img src="' + (isError ? 'assets/img/emoji-error.svg' : 'assets/img/emoji-success.svg') + '" alt="">' +
+      '<span>' + esc(text) + '</span>' +
+      '<button type="button" class="toast-close" aria-label="Fermer">×</button>';
+    toast.hidden = false;
+    toast.querySelector('.toast-close').addEventListener('click', function () { toast.hidden = true; });
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { toast.hidden = true; }, 4500);
+  }
+  if (typeof MutationObserver === 'function') {
+    document.querySelectorAll('.form-msg').forEach(function (el) {
+      new MutationObserver(function () {
+        var txt = (el.textContent || '').trim();
+        if (!txt) return;
+        if (el.classList.contains('ok')) showInfoBubble(txt, false);
+        else if (el.classList.contains('ko')) showInfoBubble(txt, true);
+      }).observe(el, { childList: true, characterData: true, subtree: true, attributes: true, attributeFilter: ['class'] });
+    });
+  }
+
   var nl = document.getElementById('newsletter-form');
   if (nl) nl.addEventListener('submit', function (e) {
     e.preventDefault();
-    document.getElementById('nl-msg').textContent = 'Merci ! Inscription enregistrée ✓';
+    var nlMsg = document.getElementById('nl-msg');
+    nlMsg.className = 'form-msg ok';
+    nlMsg.textContent = 'Merci ! Inscription enregistrée ✓';
     nl.reset();
   });
   var cf = document.getElementById('contact-form');
   if (cf) cf.addEventListener('submit', function (e) {
     e.preventDefault();
-    document.getElementById('cf-msg-out').textContent = 'Message envoyé ✓ Nous revenons vers vous rapidement.';
+    var cfMsg = document.getElementById('cf-msg-out');
+    cfMsg.className = 'form-msg ok';
+    cfMsg.textContent = 'Message envoyé ✓ Nous revenons vers vous rapidement.';
     cf.reset();
   });
 

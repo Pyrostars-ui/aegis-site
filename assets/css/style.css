@@ -300,3 +300,20 @@ details.card summary::after { content:""; width:24px; height:24px; right:1.2rem;
 }
 .cadeau-fields textarea { min-height: 80px; resize: vertical; }
 .cadeau-fields input:focus, .cadeau-fields textarea:focus { outline: 2px solid var(--primary, #4b3fd4); outline-offset: 1px; }
+
+/* ===== Bulle info confirmation / erreur ===== */
+.toast-bubble {
+  position: fixed; top: 80px; right: 1.2rem; z-index: 200;
+  display: flex; align-items: center; gap: .75rem;
+  max-width: min(420px, calc(100vw - 2.4rem));
+  padding: .9rem 1.1rem; border-radius: var(--radius-m);
+  color: #fff; font-weight: 600; font-size: .95rem;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, .28);
+  animation: toastIn .22s ease-out;
+}
+.toast-bubble[hidden] { display: none !important; }
+.toast-bubble.toast-ok { background: #047857; border: 2px solid #34d399; }
+.toast-bubble.toast-err { background: #be123c; border: 2px solid #fb7185; }
+.toast-bubble img { width: 28px; height: 28px; flex-shrink: 0; }
+.toast-bubble .toast-close { background: transparent; border: none; color: #fff; font-size: 1.25rem; line-height: 1; cursor: pointer; margin-left: auto; padding: .2rem .4rem; }
+@keyframes toastIn { from { opacity: 0; transform: translateY(-10px) scale(.97); } to { opacity: 1; transform: translateY(0) scale(1); } }

@@ -19,7 +19,11 @@
 </ul></nav></header>
 <main id="main">
 <section class="page-hero"><h1>Tous les événements</h1><p class="hero-lead">Concerts, festivals, théâtre et sport — trouvez votre prochain rendez-vous.</p></section>
-<section aria-label="Liste des événements"><div class="cards-grid" id="cards-grid"></div></section>
+<section aria-label="Liste des événements">
+  <div class="search-bar"><label class="sr-only" for="search-input">Rechercher un événement</label><input type="search" id="search-input" placeholder="Rechercher un événement, un lieu, une catégorie…"></div>
+  <div class="cards-grid" id="cards-grid"></div>
+  <p class="no-result" id="no-result" hidden>Aucun événement trouvé.</p>
+</section>
 </main>
 <footer class="site-footer"><p class="footer-bottom">© 2026 BilletPulse</p></footer>
 <button class="cart-fab" id="cart-fab" aria-label="Ouvrir le panier"><span class="material-symbols-outlined">shopping_cart</span><span class="cart-badge" id="cart-badge" hidden>0</span></button>
