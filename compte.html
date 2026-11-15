@@ -56,7 +56,7 @@
     <div class="form-row"><label for="pf-nom">Nom</label><input type="text" id="pf-nom" required minlength="2" maxlength="50" autocomplete="family-name"></div>
     <div class="form-row"><label for="pf-email">E-mail</label><input type="email" id="pf-email" required autocomplete="email"></div>
     <div class="form-row"><label for="pf-tel">Téléphone (format international)</label><input type="tel" id="pf-tel" inputmode="tel" maxlength="22" autocomplete="tel" placeholder="+33 6 12 34 56 78"></div>
-    <div class="form-row"><label for="pf-adresse">Adresse postale</label><div class="address-autocomplete"><textarea id="pf-adresse" rows="2" autocomplete="street-address" placeholder="Ex. 12 Rue de Rivoli, 75001 Paris"></textarea><ul class="address-suggestions" id="pf-adresse-suggestions" hidden role="listbox" aria-label="Suggestions d'adresse"></ul></div></div>
+    <div class="form-row"><label for="pf-adresse">Adresse postale</label><div class="address-autocomplete"><input type="text" id="pf-adresse" autocomplete="street-address" maxlength="160" placeholder="Ex. 12 Rue de Rivoli, 75001 Paris"><ul class="address-suggestions" id="pf-adresse-suggestions" hidden role="listbox" aria-label="Suggestions d'adresse"></ul></div></div>
     <div class="form-actions">
       <button type="submit" class="btn btn-primary btn-sm">Enregistrer</button>
       <button type="button" class="btn btn-outline btn-sm" id="pf-cancel">Annuler</button>
