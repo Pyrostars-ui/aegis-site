@@ -765,30 +765,48 @@
   /* ===== Thème Jour / Nuit ===== */
   (function initThemeToggle() {
     var root = document.documentElement;
+    var mql = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)');
     var saved = localStorage.getItem('aegis_theme');
-    var theme = saved || (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-    root.setAttribute('data-theme', theme);
+    if (saved === 'dark' || saved === 'light') root.setAttribute('data-theme', saved);
+
+    function currentTheme() {
+      var explicit = root.getAttribute('data-theme');
+      if (explicit === 'dark' || explicit === 'light') return explicit;
+      return (mql && mql.matches) ? 'dark' : 'light';
+    }
+
     var navMain = document.querySelector('.nav-main');
     if (!navMain) return;
     var btn = document.createElement('button');
     btn.type = 'button';
     btn.id = 'theme-toggle';
-    btn.className = 'btn btn-outline btn-sm';
-    btn.setAttribute('aria-label', 'Basculer le thème jour ou nuit');
+    btn.className = 'theme-toggle';
+
+    var SUN_SVG = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>';
+    var MOON_SVG = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>';
+
     function syncBtn(t) {
-      btn.textContent = t === 'dark' ? '☀️ Jour' : '🌙 Nuit';
-      btn.setAttribute('aria-pressed', t === 'dark' ? 'true' : 'false');
+      var isDark = t === 'dark';
+      btn.innerHTML = isDark ? SUN_SVG : MOON_SVG;
+      var label = isDark ? 'Passer en mode jour' : 'Passer en mode nuit';
+      btn.setAttribute('aria-label', label);
+      btn.setAttribute('title', label);
+      btn.setAttribute('aria-pressed', isDark ? 'true' : 'false');
     }
-    syncBtn(theme);
+
+    syncBtn(currentTheme());
     btn.addEventListener('click', function () {
-      theme = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-      root.setAttribute('data-theme', theme);
-      localStorage.setItem('aegis_theme', theme);
-      syncBtn(theme);
+      var next = currentTheme() === 'dark' ? 'light' : 'dark';
+      root.setAttribute('data-theme', next);
+      localStorage.setItem('aegis_theme', next);
+      syncBtn(next);
     });
-    var navToggle = document.getElementById('nav-toggle');
-    if (navToggle) navMain.insertBefore(btn, navToggle);
-    else navMain.appendChild(btn);
+    if (mql && mql.addEventListener) {
+      mql.addEventListener('change', function () {
+        if (!localStorage.getItem('aegis_theme')) syncBtn(currentTheme());
+      });
+    }
+    navMain.appendChild(btn);
   })();
 
   /* ===== Espace Administrateur (admin.html & admin-catalogue.html) ===== */
