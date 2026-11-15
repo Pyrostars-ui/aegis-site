@@ -17,7 +17,7 @@
   }
   function addItem(cart, ev, qty) {
     var found = cart.find(function (i) { return i.event === ev.title; });
-    if (found) { found.qty += qty || 1; } else { cart.push({ event: ev.title, price: ev.price, qty: qty || 1 }); }
+    if (found) { found.qty += qty || 1; } else { cart.push({ event: ev.title, price: Number(ev.prix) || Number(ev.price) || 0, qty: qty || 1, tarif: ev.tarif || 'standard', tarifLabel: ev.tarifLabel || 'Standard', cadeau: ev.cadeau || null }); }
     return cart;
   }
   var api = { TVA: TVA, PROMOS: PROMOS, computeTotals: computeTotals, applyPromo: applyPromo, makeTrackNumber: makeTrackNumber, addItem: addItem };
