@@ -71,7 +71,9 @@
       '<label class="sr-only" for="nav-search-input">Rechercher un événement</label>' +
       '<input type="search" id="nav-search-input" placeholder="Rechercher un événement…">' +
       '<button type="submit" aria-label="Rechercher"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></button>';
-    brand.insertAdjacentElement('afterend', form);
+    var themeBtn = document.getElementById('theme-toggle');
+    if (themeBtn) navMain.insertBefore(form, themeBtn);
+    else navMain.appendChild(form);
     navSearchInput = document.getElementById('nav-search-input');
     var initialQ = new URLSearchParams(location.search).get('q');
     if (initialQ) navSearchInput.value = initialQ;
