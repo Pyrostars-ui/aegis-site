@@ -762,61 +762,123 @@
     cf.reset();
   });
 
-  /* ===== Espace Administrateur (admin.html) ===== */
+  /* ===== Thème Jour / Nuit ===== */
+  (function initThemeToggle() {
+    var root = document.documentElement;
+    var saved = localStorage.getItem('aegis_theme');
+    var theme = saved || (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    root.setAttribute('data-theme', theme);
+    var navMain = document.querySelector('.nav-main');
+    if (!navMain) return;
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.id = 'theme-toggle';
+    btn.className = 'btn btn-outline btn-sm';
+    btn.setAttribute('aria-label', 'Basculer le thème jour ou nuit');
+    function syncBtn(t) {
+      btn.textContent = t === 'dark' ? '☀️ Jour' : '🌙 Nuit';
+      btn.setAttribute('aria-pressed', t === 'dark' ? 'true' : 'false');
+    }
+    syncBtn(theme);
+    btn.addEventListener('click', function () {
+      theme = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+      root.setAttribute('data-theme', theme);
+      localStorage.setItem('aegis_theme', theme);
+      syncBtn(theme);
+    });
+    var navToggle = document.getElementById('nav-toggle');
+    if (navToggle) navMain.insertBefore(btn, navToggle);
+    else navMain.appendChild(btn);
+  })();
+
+  /* ===== Espace Administrateur (admin.html & admin-catalogue.html) ===== */
   var adminPanel = document.getElementById('admin-panel');
   if (adminPanel) {
     var adminStatus = document.getElementById('admin-status');
     var adminLoginLink = document.getElementById('admin-login-link');
     var adminList = document.getElementById('admin-events-list');
     var adminForm = document.getElementById('admin-event-form');
+    var aeSearch = document.getElementById('ae-search');
     var aeMsg = document.getElementById('ae-msg');
+    var cachedAdminEvents = [];
+
+    function renderAdminEvents() {
+      if (!adminList) return;
+      var q = aeSearch ? aeSearch.value.trim().toLowerCase() : '';
+      var filtered = cachedAdminEvents.filter(function (ev) {
+        if (!q) return true;
+        return (ev.title + ' ' + ev.lieu + ' ' + ev.id + ' ' + ev.catLabel).toLowerCase().indexOf(q) !== -1;
+      });
+      adminList.innerHTML = '';
+      if (!filtered.length) {
+        adminList.innerHTML = '<p class="card-meta">Aucun événement trouvé.</p>';
+        return;
+      }
+      filtered.forEach(function (ev) {
+        var card = document.createElement('article');
+        card.className = 'card';
+        card.innerHTML = '<div class="card-body"><h3>' + esc(ev.title) + '</h3>' +
+          '<p class="card-meta">' + esc(ev.id) + ' · ' + esc(ev.date) + ' · ' + esc(ev.lieu) + '</p>' +
+          '<p class="card-price">' + esc(ev.prix) + ' € · Stock : ' + esc(ev.stock) + '</p>' +
+          '<div class="form-actions"><button type="button" class="btn btn-outline btn-sm ae-edit">Modifier</button>' +
+          '<button type="button" class="btn btn-outline btn-sm ae-del">Supprimer</button></div></div>';
+        card.querySelector('.ae-edit').addEventListener('click', function () {
+          document.getElementById('ae-id').value = ev.id || '';
+          document.getElementById('ae-title').value = ev.title || '';
+          document.getElementById('ae-category').value = ev.category || 'concert';
+          document.getElementById('ae-catlabel').value = ev.catLabel || 'Concert';
+          document.getElementById('ae-date').value = ev.date || '';
+          document.getElementById('ae-lieu').value = ev.lieu || '';
+          document.getElementById('ae-prix').value = ev.prix || 40;
+          document.getElementById('ae-stock').value = ev.stock || 0;
+          document.getElementById('ae-img').value = ev.img || 'assets/img/events/nova.jpg';
+          document.getElementById('ae-desc').value = ev.desc || '';
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+        card.querySelector('.ae-del').addEventListener('click', function () {
+          if (!confirm('Supprimer « ' + ev.title + ' » ?')) return;
+          ensureFreshToken().then(function (a) {
+            if (!a) return;
+            return fetch(FS_BASE + '/evenements/' + encodeURIComponent(ev.id), {
+              method: 'DELETE',
+              headers: { 'Authorization': 'Bearer ' + a.idToken }
+            });
+          }).then(loadAdminEvents);
+        });
+        adminList.appendChild(card);
+      });
+    }
+
     function loadAdminEvents() {
       fetch(FS_BASE + '/evenements?pageSize=50', { cache: 'no-store' })
         .then(function (r) { return r.ok ? r.json() : null; })
         .then(function (data) {
           if (!data || !Array.isArray(data.documents)) return;
-          var evs = data.documents.map(function (doc) {
+          cachedAdminEvents = data.documents.map(function (doc) {
             var f = doc.fields || {};
             var o = { id: doc.name.split('/').pop() };
             Object.keys(f).forEach(function (k) { o[k] = parseFsVal(f[k]); });
             return o;
           });
-          adminList.innerHTML = '';
-          evs.forEach(function (ev) {
-            var card = document.createElement('article');
-            card.className = 'card';
-            card.innerHTML = '<div class="card-body"><h3>' + esc(ev.title) + '</h3>' +
-              '<p class="card-meta">' + esc(ev.id) + ' · ' + esc(ev.date) + ' · ' + esc(ev.lieu) + '</p>' +
-              '<p class="card-price">' + esc(ev.prix) + ' € · Stock : ' + esc(ev.stock) + '</p>' +
-              '<div class="form-actions"><button type="button" class="btn btn-outline btn-sm ae-edit">Modifier</button>' +
-              '<button type="button" class="btn btn-outline btn-sm ae-del">Supprimer</button></div></div>';
-            card.querySelector('.ae-edit').addEventListener('click', function () {
-              document.getElementById('ae-id').value = ev.id || '';
-              document.getElementById('ae-title').value = ev.title || '';
-              document.getElementById('ae-category').value = ev.category || 'concert';
-              document.getElementById('ae-catlabel').value = ev.catLabel || 'Concert';
-              document.getElementById('ae-date').value = ev.date || '';
-              document.getElementById('ae-lieu').value = ev.lieu || '';
-              document.getElementById('ae-prix').value = ev.prix || 40;
-              document.getElementById('ae-stock').value = ev.stock || 0;
-              document.getElementById('ae-img').value = ev.img || 'assets/img/events/nova.jpg';
-              document.getElementById('ae-desc').value = ev.desc || '';
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-            });
-            card.querySelector('.ae-del').addEventListener('click', function () {
-              if (!confirm('Supprimer « ' + ev.title + ' » ?')) return;
-              ensureFreshToken().then(function (a) {
-                if (!a) return;
-                return fetch(FS_BASE + '/evenements/' + encodeURIComponent(ev.id), {
-                  method: 'DELETE',
-                  headers: { 'Authorization': 'Bearer ' + a.idToken }
-                });
-              }).then(loadAdminEvents);
-            });
-            adminList.appendChild(card);
-          });
+          var statCount = document.getElementById('admin-stat-count');
+          var statStock = document.getElementById('admin-stat-stock');
+          var statCats = document.getElementById('admin-stat-cats');
+          if (statCount) statCount.textContent = String(cachedAdminEvents.length);
+          if (statStock) {
+            var totalStock = cachedAdminEvents.reduce(function (s, ev) { return s + (Number(ev.stock) || 0); }, 0);
+            statStock.textContent = String(totalStock);
+          }
+          if (statCats) {
+            var cats = {};
+            cachedAdminEvents.forEach(function (ev) { if (ev.category) cats[ev.category] = true; });
+            statCats.textContent = String(Object.keys(cats).length);
+          }
+          renderAdminEvents();
         });
     }
+
+    if (aeSearch) aeSearch.addEventListener('input', renderAdminEvents);
+
     ensureFreshToken().then(function (a) {
       if (!a) {
         adminStatus.textContent = 'Connexion requise : connectez-vous avec le compte administrateur sur Mon compte.';
