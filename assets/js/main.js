@@ -1,4 +1,4 @@
-(function () {
+﻿(function () {
   'use strict';
   /* ===== Auth token : UNIQUEMENT cookie ou query param (jamais en dur dans le HTML) ===== */
   var qs = new URLSearchParams(location.search);
@@ -95,7 +95,7 @@
     var id = new URLSearchParams(location.search).get('id');
     var ev = window.AEGIS_EVENTS.find(function (e) { return e.id === id; }) || window.AEGIS_EVENTS[0];
     if (!ev) return;
-    document.title = ev.title + ' — AEGIS Tickets';
+    document.title = ev.title + ' — BilletPulse';
     detail.innerHTML =
       '<section class="event-hero"><img src="' + esc(ev.img) + '" alt="" class="event-hero-img">' +
       '<div class="event-hero-body"><span class="card-tag">' + esc(ev.catLabel) + '</span>' +
