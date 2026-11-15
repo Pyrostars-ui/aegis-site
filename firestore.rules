@@ -20,17 +20,28 @@ rules_version = '2';
 //   - desc: string (required) - Event description
 //   - tarifs: list<map> (required) - Ticket tiers ({ type: string, label: string, prix: number })
 //
+// Collection: users
+// Document ID: {userId} (must match authenticated Firebase Auth request.auth.uid)
+// Visibility: Private to the owning authenticated user only (contains PII).
+// Fields:
+//   - prenom: string (required, 1..100 chars) - User first name
+//   - nom: string (required, 1..100 chars) - User last name
+//   - email: string (required, 3..254 chars) - User email address
+//   - tel: string (required, 0..40 chars) - User phone number (empty string if unset)
+//   - adresse: string (required, 0..300 chars) - User postal address (empty string if unset)
+//   - updatedAt: string (required, 1..64 chars) - ISO 8601 client update timestamp
+//
 // Collection: paniers
-// Document ID: {cartId} (currently restricted to demo client "client-1"; no Firebase Auth)
-// Visibility: Cross-browser cart synchronization for demo client "client-1" only.
+// Document ID: {userId} (must match authenticated Firebase Auth request.auth.uid)
+// Visibility: Private to the owning authenticated user only.
 // Fields:
 //   - items: list<map> (required, max 50 items) - Cart line items
 //   - promoCode: string (required, 0..32 chars) - Applied promo code (empty string if none)
 //   - updatedAt: string (required, 1..64 chars) - ISO 8601 client update timestamp
 //
 // Collection: billets
-// Document ID: {ticketId} (currently restricted to demo client "client-1"; no Firebase Auth)
-// Visibility: Cross-browser purchased tickets synchronization for demo client "client-1" only.
+// Document ID: {userId} (must match authenticated Firebase Auth request.auth.uid)
+// Visibility: Private to the owning authenticated user only.
 // Fields:
 //   - items: list<map> (required, max 200 items) - Purchased ticket records
 //   - updatedAt: string (required, 1..64 chars) - ISO 8601 client update timestamp
@@ -43,6 +54,16 @@ service cloud.firestore {
     // ===============================================================
     // Helper Functions
     // ===============================================================
+
+    // Check if the user is authenticated via Firebase Auth
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Check if the authenticated user owns the document keyed by userId
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
 
     // Validate that the document contains all required fields
     function hasRequiredFields(data, fields) {
@@ -71,6 +92,18 @@ service cloud.firestore {
     // ===============================================================
     // Domain Validators (Used in both create and update)
     // ===============================================================
+
+    function isValidUserProfile(data) {
+      let allowed = ['prenom', 'nom', 'email', 'tel', 'adresse', 'updatedAt'];
+      return hasRequiredFields(data, allowed) &&
+             hasOnlyAllowedFields(data, allowed) &&
+             isValidString(data.prenom, 1, 100) &&
+             isValidString(data.nom, 1, 100) &&
+             isValidString(data.email, 3, 254) &&
+             isValidString(data.tel, 0, 40) &&
+             isValidString(data.adresse, 0, 300) &&
+             isValidString(data.updatedAt, 1, 64);
+    }
 
     function isValidCart(data) {
       let allowed = ['items', 'promoCode', 'updatedAt'];
@@ -105,21 +138,30 @@ service cloud.firestore {
       allow create, update, delete: if false;
     }
 
-    // Demo client shopping cart synchronization (no Firebase Auth yet).
-    // Restricted strictly to document ID 'client-1'; listing and deletion are denied.
-    match /paniers/{cartId} {
-      allow get: if cartId == 'client-1';
-      allow create: if cartId == 'client-1' && isValidCart(request.resource.data);
-      allow update: if cartId == 'client-1' && isValidCart(request.resource.data);
+    // Private user profiles containing PII.
+    // Only the authenticated owner (request.auth.uid == userId) can get, create, or update.
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidUserProfile(request.resource.data);
+      allow update: if isOwner(userId) && isValidUserProfile(request.resource.data);
       allow list, delete: if false;
     }
 
-    // Demo client purchased tickets synchronization (no Firebase Auth yet).
-    // Restricted strictly to document ID 'client-1'; listing and deletion are denied.
-    match /billets/{ticketId} {
-      allow get: if ticketId == 'client-1';
-      allow create: if ticketId == 'client-1' && isValidTickets(request.resource.data);
-      allow update: if ticketId == 'client-1' && isValidTickets(request.resource.data);
+    // Private user shopping cart synchronization.
+    // Only the authenticated owner (request.auth.uid == userId) can get, create, or update.
+    match /paniers/{userId} {
+      allow get: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidCart(request.resource.data);
+      allow update: if isOwner(userId) && isValidCart(request.resource.data);
+      allow list, delete: if false;
+    }
+
+    // Private user purchased tickets synchronization.
+    // Only the authenticated owner (request.auth.uid == userId) can get, create, or update.
+    match /billets/{userId} {
+      allow get: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidTickets(request.resource.data);
+      allow update: if isOwner(userId) && isValidTickets(request.resource.data);
       allow list, delete: if false;
     }
   }

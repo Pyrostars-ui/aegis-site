@@ -120,7 +120,9 @@ section { margin:2.5rem 0; }
 .profile-main h2 { margin:0; }
 .profile-mail { color:var(--muted); margin:.2rem 0; word-break:break-all; }
 .profile-badge { display:inline-block; background:rgba(0,179,164,.12); color:var(--success); font-size:.8rem; font-weight:600; padding:.2rem .6rem; border-radius:999px; }
-.profile-main .btn { margin-left:auto; }
+.profile-main .profile-actions { margin-left:auto; display:flex; gap:.5rem; flex-wrap:wrap; }
+.account-auth { margin-bottom:1.2rem; }
+.account-auth[hidden], #account-profile[hidden], #logout-btn[hidden] { display:none !important; }
 .profile-form { margin-top:1rem; padding:1.2rem; background:var(--surface-2); border-radius:var(--radius-m); display:grid; gap:.9rem; }
 .profile-form[hidden] { display:none !important; }
 .form-row { display:grid; gap:.3rem; }

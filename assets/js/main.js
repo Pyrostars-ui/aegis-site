@@ -214,24 +214,63 @@
       });
   }
 
-  /* ===== Panier v2 (synchronisé Cloud Firestore) ===== */
+  /* ===== Firebase Auth + Panier v2 (synchronisé Cloud Firestore) ===== */
+  var FIREBASE_API_KEY = 'AIzaSyCq6vYsEiPJQpIDrjLFOQQQkR1DaK7WvxM';
+  var AUTH_KEY = 'aegis-auth';
   var CART_KEY = 'aegis-cart';
   var TICKETS_KEY = 'aegis-tickets-list';
+  var PKEY = 'aegis-profile';
   var promoCode = null;
+  function getAuth() { try { return JSON.parse(localStorage.getItem(AUTH_KEY) || 'null'); } catch (e) { return null; } }
+  function saveAuth(a) { if (a) localStorage.setItem(AUTH_KEY, JSON.stringify(a)); else localStorage.removeItem(AUTH_KEY); }
+  function ensureFreshToken() {
+    var a = getAuth();
+    if (!a || !a.uid || !a.idToken) return Promise.resolve(null);
+    if (a.expiresAt && Date.now() < a.expiresAt - 60000) return Promise.resolve(a);
+    if (!a.refreshToken || typeof fetch !== 'function') return Promise.resolve(a);
+    return fetch('https://securetoken.googleapis.com/v1/token?key=' + FIREBASE_API_KEY, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: 'grant_type=refresh_token&refresh_token=' + encodeURIComponent(a.refreshToken)
+    })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) {
+        if (!d || !d.id_token) { saveAuth(null); return null; }
+        var updated = {
+          uid: d.user_id || a.uid,
+          email: a.email,
+          idToken: d.id_token,
+          refreshToken: d.refresh_token || a.refreshToken,
+          expiresAt: Date.now() + (Number(d.expires_in) || 3600) * 1000
+        };
+        saveAuth(updated);
+        return updated;
+      })
+      .catch(function () { return a; });
+  }
+  function fsPatchUserDoc(collection, uid, fields, token) {
+    return fetch(FS_BASE + '/' + collection + '/' + encodeURIComponent(uid), {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+      body: JSON.stringify({ fields: fields })
+    });
+  }
+  function fsGetUserDoc(collection, uid, token) {
+    return fetch(FS_BASE + '/' + collection + '/' + encodeURIComponent(uid), {
+      headers: { 'Authorization': 'Bearer ' + token }
+    }).then(function (r) { return r.ok ? r.json() : null; });
+  }
   function getCart() { try { return JSON.parse(localStorage.getItem(CART_KEY)) || []; } catch (e) { return []; } }
   function getTicketsLocal() { try { return JSON.parse(localStorage.getItem(TICKETS_KEY) || '[]'); } catch (e) { return []; } }
   function pushCartToFs(c) {
     if (typeof fetch !== 'function') return Promise.resolve();
-    return fetch(FS_BASE + '/paniers/client-1', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        fields: {
-          items: toFsVal(Array.isArray(c) ? c : []),
-          promoCode: toFsVal(promoCode || ''),
-          updatedAt: toFsVal(new Date().toISOString())
-        }
-      })
+    return ensureFreshToken().then(function (a) {
+      if (!a) return;
+      return fsPatchUserDoc('paniers', a.uid, {
+        items: toFsVal(Array.isArray(c) ? c : []),
+        promoCode: toFsVal(promoCode || ''),
+        updatedAt: toFsVal(new Date().toISOString())
+      }, a.idToken);
     }).catch(function () {});
   }
   function saveCart(c) {
@@ -240,39 +279,34 @@
   }
   function pushTicketsToFs(list) {
     if (typeof fetch !== 'function') return Promise.resolve();
-    return fetch(FS_BASE + '/billets/client-1', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        fields: {
-          items: toFsVal(Array.isArray(list) ? list : []),
-          updatedAt: toFsVal(new Date().toISOString())
-        }
-      })
+    return ensureFreshToken().then(function (a) {
+      if (!a) return;
+      return fsPatchUserDoc('billets', a.uid, {
+        items: toFsVal(Array.isArray(list) ? list : []),
+        updatedAt: toFsVal(new Date().toISOString())
+      }, a.idToken);
     }).catch(function () {});
   }
   function syncCartFromFs() {
     if (typeof fetch !== 'function') return Promise.resolve();
-    return fetch(FS_BASE + '/paniers/client-1')
-      .then(function (r) { return r.ok ? r.json() : null; })
-      .then(function (doc) {
+    return ensureFreshToken().then(function (a) {
+      if (!a) return;
+      return fsGetUserDoc('paniers', a.uid, a.idToken).then(function (doc) {
         if (!doc || !doc.fields) return;
         var items = parseFsVal(doc.fields.items);
         var remotePromo = parseFsVal(doc.fields.promoCode);
-        if (Array.isArray(items)) {
-          localStorage.setItem(CART_KEY, JSON.stringify(items));
-        }
+        if (Array.isArray(items)) localStorage.setItem(CART_KEY, JSON.stringify(items));
         promoCode = remotePromo ? window.CartCore.applyPromo(String(remotePromo)) : null;
         updateBadge();
         if (panel && !panel.hidden) renderCart();
-      })
-      .catch(function () {});
+      });
+    }).catch(function () {});
   }
   function syncTicketsFromFs(onDone) {
-    if (typeof fetch !== 'function') return Promise.resolve([]);
-    return fetch(FS_BASE + '/billets/client-1')
-      .then(function (r) { return r.ok ? r.json() : null; })
-      .then(function (doc) {
+    if (typeof fetch !== 'function') return Promise.resolve(getTicketsLocal());
+    return ensureFreshToken().then(function (a) {
+      if (!a) return getTicketsLocal();
+      return fsGetUserDoc('billets', a.uid, a.idToken).then(function (doc) {
         if (doc && doc.fields) {
           var items = parseFsVal(doc.fields.items);
           if (Array.isArray(items)) {
@@ -282,8 +316,8 @@
           }
         }
         return getTicketsLocal();
-      })
-      .catch(function () { return getTicketsLocal(); });
+      });
+    }).catch(function () { return getTicketsLocal(); });
   }
   var badge = document.getElementById('cart-badge');
   function updateBadge() {
@@ -433,10 +467,78 @@
   syncCartFromFs();
   syncTicketsFromFs();
 
-  /* ===== Compte : profil éditable ===== */
-  var PKEY = 'aegis-profile';
+  /* ===== Compte : authentification + profil éditable ===== */
   function defP() { return { prenom: 'Adélaïde', nom: 'Bernstein', email: 'adelaide.bernstein@exemple.fr', tel: '', adresse: '' }; }
   function loadP() { try { return Object.assign(defP(), JSON.parse(localStorage.getItem(PKEY) || '{}')); } catch (e) { return defP(); } }
+  function pushProfileToFs(p) {
+    return ensureFreshToken().then(function (a) {
+      if (!a) return;
+      return fsPatchUserDoc('users', a.uid, {
+        prenom: toFsVal(p.prenom || 'Client'),
+        nom: toFsVal(p.nom || 'AEGIS'),
+        email: toFsVal(p.email || a.email || ''),
+        tel: toFsVal(p.tel || ''),
+        adresse: toFsVal(p.adresse || ''),
+        updatedAt: toFsVal(new Date().toISOString())
+      }, a.idToken);
+    }).catch(function () {});
+  }
+  function syncProfileFromFs(onDone) {
+    return ensureFreshToken().then(function (a) {
+      if (!a) return null;
+      return fsGetUserDoc('users', a.uid, a.idToken).then(function (doc) {
+        if (doc && doc.fields) {
+          var p = {
+            prenom: parseFsVal(doc.fields.prenom) || 'Client',
+            nom: parseFsVal(doc.fields.nom) || 'AEGIS',
+            email: parseFsVal(doc.fields.email) || a.email || '',
+            tel: parseFsVal(doc.fields.tel) || '',
+            adresse: parseFsVal(doc.fields.adresse) || ''
+          };
+          localStorage.setItem(PKEY, JSON.stringify(p));
+          if (typeof onDone === 'function') onDone(p);
+          return p;
+        }
+        return null;
+      });
+    }).catch(function () { return null; });
+  }
+
+  var authSection = document.getElementById('auth-section');
+  var accountProfile = document.getElementById('account-profile');
+  var logoutBtn = document.getElementById('logout-btn');
+  var authForm = document.getElementById('auth-form');
+  var authSignupBtn = document.getElementById('auth-signup-btn');
+  var authMsg = document.getElementById('auth-msg');
+  function updateAuthUI() {
+    var a = getAuth();
+    var signedIn = !!(a && a.uid && a.idToken);
+    if (authSection) authSection.hidden = signedIn;
+    if (accountProfile) accountProfile.hidden = !signedIn;
+    if (logoutBtn) logoutBtn.hidden = !signedIn;
+  }
+  function authEndpoint(action, payload) {
+    return fetch('https://identitytoolkit.googleapis.com/v1/accounts:' + action + '?key=' + FIREBASE_API_KEY, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(Object.assign({ returnSecureToken: true }, payload))
+    }).then(function (r) {
+      return r.json().then(function (d) {
+        if (!r.ok) {
+          var code = (d && d.error && d.error.message) || 'AUTH_ERROR';
+          throw new Error(code);
+        }
+        return d;
+      });
+    });
+  }
+  function formatAuthErr(code) {
+    if (code.indexOf('EMAIL_EXISTS') !== -1) return 'Un compte existe déjà avec cet e-mail.';
+    if (code.indexOf('INVALID_LOGIN_CREDENTIALS') !== -1 || code.indexOf('INVALID_PASSWORD') !== -1 || code.indexOf('EMAIL_NOT_FOUND') !== -1) return 'E-mail ou mot de passe incorrect.';
+    if (code.indexOf('WEAK_PASSWORD') !== -1) return 'Mot de passe trop court (6 caractères minimum).';
+    if (code.indexOf('INVALID_EMAIL') !== -1) return 'Adresse e-mail invalide.';
+    return 'Erreur d’authentification (' + code + ').';
+  }
   var editBtn = document.getElementById('edit-profile');
   var pform = document.getElementById('profile-form');
   if (editBtn && pform) {
@@ -453,6 +555,80 @@
       document.getElementById('pf-email').value = p.email || '';
       document.getElementById('pf-tel').value = p.tel || '';
       document.getElementById('pf-adresse').value = p.adresse || '';
+    }
+    if (authForm) {
+      authForm.addEventListener('submit', function (e) {
+        e.preventDefault();
+        var email = (document.getElementById('auth-email').value || '').trim();
+        var password = document.getElementById('auth-password').value || '';
+        authMsg.textContent = 'Connexion en cours…'; authMsg.className = 'form-msg';
+        authEndpoint('signInWithPassword', { email: email, password: password })
+          .then(function (d) {
+            saveAuth({ uid: d.localId, email: d.email, idToken: d.idToken, refreshToken: d.refreshToken, expiresAt: Date.now() + (Number(d.expiresIn) || 3600) * 1000 });
+            updateAuthUI();
+            return Promise.all([
+              syncProfileFromFs(renderP),
+              syncCartFromFs(),
+              syncTicketsFromFs(function () { if (typeof renderTicketsGlobal === 'function') renderTicketsGlobal(); })
+            ]);
+          })
+          .then(function () { authMsg.textContent = ''; })
+          .catch(function (err) { authMsg.textContent = formatAuthErr(err.message); authMsg.className = 'form-msg ko'; });
+      });
+    }
+    if (authSignupBtn) {
+      authSignupBtn.addEventListener('click', function () {
+        var email = (document.getElementById('auth-email').value || '').trim();
+        var password = document.getElementById('auth-password').value || '';
+        var prenom = (document.getElementById('auth-prenom').value || '').trim() || 'Client';
+        var nom = (document.getElementById('auth-nom').value || '').trim() || 'AEGIS';
+        if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { authMsg.textContent = 'Adresse e-mail invalide.'; authMsg.className = 'form-msg ko'; return; }
+        if (password.length < 6) { authMsg.textContent = 'Mot de passe : 6 caractères minimum.'; authMsg.className = 'form-msg ko'; return; }
+        authMsg.textContent = 'Création du compte et du panier Firestore…'; authMsg.className = 'form-msg';
+        authEndpoint('signUp', { email: email, password: password })
+          .then(function (d) {
+            var auth = { uid: d.localId, email: d.email, idToken: d.idToken, refreshToken: d.refreshToken, expiresAt: Date.now() + (Number(d.expiresIn) || 3600) * 1000 };
+            saveAuth(auth);
+            var profile = { prenom: prenom, nom: nom, email: d.email, tel: '', adresse: '' };
+            localStorage.setItem(PKEY, JSON.stringify(profile));
+            var initialCart = getCart();
+            var nowIso = new Date().toISOString();
+            return Promise.all([
+              fsPatchUserDoc('users', auth.uid, {
+                prenom: toFsVal(profile.prenom), nom: toFsVal(profile.nom), email: toFsVal(profile.email),
+                tel: toFsVal(''), adresse: toFsVal(''), updatedAt: toFsVal(nowIso)
+              }, auth.idToken),
+              fsPatchUserDoc('paniers', auth.uid, {
+                items: toFsVal(initialCart), promoCode: toFsVal(promoCode || ''), updatedAt: toFsVal(nowIso)
+              }, auth.idToken),
+              fsPatchUserDoc('billets', auth.uid, {
+                items: toFsVal([]), updatedAt: toFsVal(nowIso)
+              }, auth.idToken)
+            ]);
+          })
+          .then(function () {
+            localStorage.setItem(TICKETS_KEY, '[]');
+            updateAuthUI(); renderP(); updateBadge();
+            if (typeof renderTicketsGlobal === 'function') renderTicketsGlobal();
+            authMsg.textContent = '';
+          })
+          .catch(function (err) { authMsg.textContent = formatAuthErr(err.message); authMsg.className = 'form-msg ko'; });
+      });
+    }
+    if (logoutBtn) {
+      logoutBtn.addEventListener('click', function () {
+        saveAuth(null);
+        localStorage.removeItem(CART_KEY);
+        localStorage.removeItem(TICKETS_KEY);
+        localStorage.removeItem(PKEY);
+        promoCode = null;
+        updateAuthUI(); updateBadge(); renderCart();
+        if (typeof renderTicketsGlobal === 'function') renderTicketsGlobal();
+      });
+    }
+    updateAuthUI();
+    if (getAuth()) {
+      syncProfileFromFs(renderP);
     }
     editBtn.addEventListener('click', function () {
       var open = pform.hidden;
@@ -474,7 +650,9 @@
       var adresse = document.getElementById('pf-adresse').value.trim();
       if (prenom.length < 2 || nom.length < 2) { msg.textContent = 'Prénom et nom requis (2 caractères min).'; msg.className = 'form-msg ko'; return; }
       if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { msg.textContent = 'Adresse e-mail invalide.'; msg.className = 'form-msg ko'; return; }
-      localStorage.setItem(PKEY, JSON.stringify({ prenom: prenom, nom: nom, email: email, tel: tel, adresse: adresse }));
+      var updatedP = { prenom: prenom, nom: nom, email: email, tel: tel, adresse: adresse };
+      localStorage.setItem(PKEY, JSON.stringify(updatedP));
+      pushProfileToFs(updatedP);
       renderP();
       msg.textContent = 'Profil mis à jour ✓'; msg.className = 'form-msg ok';
       setTimeout(function () { pform.hidden = true; editBtn.setAttribute('aria-expanded', 'false'); editBtn.textContent = 'Modifier le profil'; msg.textContent = ''; }, 1200);
