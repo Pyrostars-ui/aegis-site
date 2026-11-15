@@ -69,5 +69,14 @@
 </main>
 <footer class="site-footer"><p class="footer-bottom">© 2026 AEGIS Tickets</p></footer>
 <button class="cart-fab" id="cart-fab" aria-label="Panier">🛒<span class="cart-badge" id="cart-badge" hidden>0</span></button>
+<button class="cart-fab" id="cart-fab" aria-label="Ouvrir le panier"><span class="material-symbols-outlined">shopping_cart</span><span class="cart-badge" id="cart-badge" hidden>0</span></button>
+<div class="cart-overlay" id="cart-overlay" hidden></div>
+<aside class="cart-panel" id="cart-panel" hidden aria-label="Panier">
+  <div class="cart-head"><h2>Votre panier</h2><button class="icon-btn" id="cart-close" aria-label="Fermer le panier"><span class="material-symbols-outlined">close</span></button></div>
+  <div class="cart-items" id="cart-items" aria-live="polite"></div>
+  <div class="cart-totals" id="cart-totals"></div>
+  <div class="cart-promo"><label class="sr-only" for="promo-input">Code promo</label><input type="text" id="promo-input" placeholder="Code promo"><button class="btn btn-outline btn-sm" id="promo-apply">Appliquer</button></div>
+  <button class="btn btn-primary btn-lg" id="cart-pay">Payer</button>
+</aside>
 <script src="assets/js/cart-core.js"></script><script src="assets/js/main.js"></script>
 </body></html>
