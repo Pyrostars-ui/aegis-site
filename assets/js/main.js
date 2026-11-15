@@ -798,6 +798,14 @@
       document.addEventListener('click', function (ev) {
         if (ev.target !== pfAdresseInput && !pfAdresseList.contains(ev.target)) pfAdresseList.hidden = true;
       });
+      pfAdresseInput.addEventListener('blur', function () {
+        if (!window.CartCore || !window.CartCore.validateAddress) return;
+        var res = window.CartCore.validateAddress(pfAdresseInput.value);
+        pfAdresseInput.setCustomValidity(res.ok ? '' : res.error);
+      });
+      pfAdresseInput.addEventListener('input', function () {
+        pfAdresseInput.setCustomValidity('');
+      });
     }
     pform.addEventListener('submit', function (e) {
       e.preventDefault();
@@ -912,6 +920,18 @@
     if (acc) acc.addEventListener('click', function () { localStorage.setItem('aegis-cookies', '1'); banner.hidden = true; });
     if (ref) ref.addEventListener('click', function () { localStorage.setItem('aegis-cookies', '0'); banner.hidden = true; });
   }
+  /* ===== Normalisation automatique en minuscules des champs e-mail ===== */
+  document.querySelectorAll('input[type="email"]').forEach(function (emailEl) {
+    emailEl.addEventListener('input', function () {
+      var lower = emailEl.value.toLowerCase();
+      if (emailEl.value !== lower) {
+        var pos = emailEl.selectionStart;
+        emailEl.value = lower;
+        if (typeof pos === 'number') emailEl.setSelectionRange(pos, pos);
+      }
+    });
+  });
+
   /* ===== Bulle info confirmation / erreur (tous formulaires) ===== */
   var toastTimer = null;
   function showInfoBubble(text, isError) {

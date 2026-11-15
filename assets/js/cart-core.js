@@ -124,13 +124,13 @@
     if (/[<>{}[\]$]/.test(trimmed)) {
       return { ok: false, error: 'Adresse postale : caractères spéciaux non autorisés.' };
     }
-    if (trimmed.length < 8) {
+    if (trimmed.length < 10) {
       return { ok: false, error: 'Adresse postale trop courte (ex. 12 Rue de Rivoli, 75001 Paris).' };
     }
-    var hasDigit = /\d/.test(trimmed);
-    var words = trimmed.split(/\s+/).filter(function (w) { return /\p{L}{2,}/u.test(w); });
-    if (!hasDigit || words.length < 2) {
-      return { ok: false, error: 'Format d’adresse invalide : indiquez numéro/code postal et ville (ex. 12 Rue de Rivoli, 75001 Paris).' };
+    var hasPostalCode = /\b\d{4,5}\b/.test(trimmed);
+    var words = trimmed.split(/[\s,]+/).filter(function (w) { return /\p{L}{2,}/u.test(w); });
+    if (!hasPostalCode || words.length < 2) {
+      return { ok: false, error: 'Format d’adresse invalide : indiquez rue, code postal (4-5 chiffres) et ville (ex. 12 Rue de Rivoli, 75001 Paris).' };
     }
     return { ok: true, formatted: trimmed };
   }

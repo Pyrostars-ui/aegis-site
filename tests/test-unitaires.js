@@ -45,5 +45,6 @@ assert.strictEqual(C.validateName('Adélaïde', 'Prénom').ok, true);
 assert.strictEqual(C.validateName('A', 'Prénom').ok, false);
 assert.strictEqual(C.validateName('Jean@42', 'Prénom').ok, false);
 assert.strictEqual(C.validateAddress('12 Rue de Rivoli, 75001 Paris').ok, true);
+assert.strictEqual(C.validateAddress('12 Rue de Rivoli').ok, false);
 assert.strictEqual(C.validateAddress('Paris').ok, false);
-console.log('✅ Tests unitaires : 21/21 OK');
+console.log('✅ Tests unitaires : 22/22 OK');
