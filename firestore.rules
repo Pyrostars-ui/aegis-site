@@ -6,7 +6,7 @@ rules_version = '2';
 //
 // Collection: evenements
 // Document ID: {eventId} (slug string, e.g., "sunwave-festival-3-jours")
-// Visibility: Public read-only catalog (no PII). Managed server-side / Admin SDK only.
+// Visibility: Public read-only catalog (no PII). Managed by authenticated admins (listed in /admins) or Admin SDK.
 // Fields (from assets/js/events-data.js):
 //   - id: string (required) - Event slug identifier
 //   - title: string (required) - Event display title
@@ -46,6 +46,12 @@ rules_version = '2';
 //   - items: list<map> (required, max 200 items) - Purchased ticket records
 //   - updatedAt: string (required, 1..64 chars) - ISO 8601 client update timestamp
 //
+// Collection: admins
+// Document ID: {userId} (must match authenticated Firebase Auth request.auth.uid)
+// Visibility: Private to the owning authenticated user (get only). Provisioned server-side / Firebase Console only.
+// Fields:
+//   - Presence of document grants admin role for /evenements management.
+//
 // ===============================================================
 
 service cloud.firestore {
@@ -63,6 +69,11 @@ service cloud.firestore {
     // Check if the authenticated user owns the document keyed by userId
     function isOwner(userId) {
       return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Check if the authenticated user has an admin role document in /admins
+    function isAdmin() {
+      return isAuthenticated() && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
     }
 
     // Validate that the document contains all required fields
@@ -131,11 +142,17 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
-    // Public event catalog: anyone can read/query events; all client writes are denied.
-    // Events are managed exclusively server-side (Admin SDK) or via the Firebase Console.
+    // Admin role registry: users can check their own admin status; all client writes and listing are denied.
+    // Admins are provisioned only server-side / via Firebase Console, never by clients.
+    match /admins/{userId} {
+      allow get: if isOwner(userId);
+      allow list, create, update, delete: if false;
+    }
+
+    // Public event catalog: anyone can read/query events; only admins can create, update, or delete.
     match /evenements/{eventId} {
       allow get, list: if true;
-      allow create, update, delete: if false;
+      allow create, update, delete: if isAdmin();
     }
 
     // Private user profiles containing PII.
