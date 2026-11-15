@@ -94,19 +94,64 @@
       '<div class="event-hero-body"><span class="card-tag">' + esc(ev.catLabel) + '</span>' +
       '<h1>' + esc(ev.title) + '</h1><p class="card-meta">' + esc(ev.date) + ' · ' + esc(ev.lieu) + '</p></div></section>' +
       '<section class="card"><div class="card-body"><h2>Programme</h2><p>' + esc(ev.desc) + '</p></div></section>' +
-      '<section class="card"><div class="card-body"><h2>Tarifs</h2><p><strong>' + esc(ev.prix) + ' €</strong> — place standard (TVA 20 % incluse dans le total du panier).</p></div></section>' +
+      '<section class="card"><div class="card-body"><h2>Tarifs</h2><div class="tarifs" role="radiogroup" aria-label="Choix du tarif">' +
+      (ev.tarifs || [{type:'standard',label:'Standard',prix:ev.prix}]).map(function (t, i) {
+        return '<label class="tarif-option"><input type="radio" name="tarif" value="' + esc(t.type) + '" data-prix="' + Number(t.prix) + '"' + (i === 0 ? ' checked' : '') + '>' +
+          '<span class="tarif-label">' + esc(t.label) + '</span><span class="tarif-prix">' + Number(t.prix) + ' €</span></label>';
+      }).join('') +
+      '<p class="tarif-note">TVA 20 % incluse dans le total du panier.</p>' +
+      '<div class="cadeau-box"><label class="cadeau-option"><input type="checkbox" id="cadeau-check">' +
+      '<span class="cadeau-label">🎁 Offrir à un ami ou un proche</span></label>' +
+      '<div class="cadeau-fields" id="cadeau-fields" hidden>' +
+      '<label for="cadeau-nom">Prénom et nom du bénéficiaire</label>' +
+      '<input type="text" id="cadeau-nom" autocomplete="off" placeholder="Ex. Camille Dupont">' +
+      '<label for="cadeau-email">E-mail du bénéficiaire</label>' +
+      '<input type="email" id="cadeau-email" autocomplete="off" placeholder="camille@exemple.fr">' +
+      '<label for="cadeau-msg">Message personnalisé (facultatif)</label>' +
+      '<textarea id="cadeau-msg" rows="2" placeholder="Joyeux anniversaire !"></textarea>' +
+      '</div></div></div></section>' +
       '<section class="buy-box card"><div class="card-body">' +
       '<p class="card-stock' + (ev.stock < 20 ? ' low' : '') + '">' + (ev.stock < 20 ? '⚠ Stock faible : ' + esc(ev.stock) + ' places' : esc(ev.stock) + ' places disponibles') + '</p>' +
       '<button class="btn btn-primary btn-lg" id="ev-buy">Acheter — ' + esc(ev.prix) + ' €</button>' +
       '</div></section>';
+    function tarifChoisi() {
+      var r = document.querySelector('input[name="tarif"]:checked');
+      return r ? { type: r.value, prix: Number(r.dataset.prix) } : { type: 'standard', prix: ev.prix };
+    }
+    var tarifLabel = { standard: 'Standard', premium: 'Premium', vip: 'VIP' };
+    var cadeauCheck = document.getElementById('cadeau-check');
+    var cadeauFields = document.getElementById('cadeau-fields');
+    if (cadeauCheck && cadeauFields) {
+      cadeauCheck.addEventListener('change', function () {
+        cadeauFields.hidden = !cadeauCheck.checked;
+      });
+    }
     var buyBtn = document.getElementById('ev-buy');
-    if (buyBtn) buyBtn.addEventListener('click', function () {
-      var cart = getCart();
-      window.CartCore.addItem(cart, ev, 1);
-      saveCart(cart);
-      updateBadge();
-      openCart();
-    });
+    if (buyBtn) {
+      var radios = document.querySelectorAll('input[name="tarif"]');
+      radios.forEach(function (r) {
+        r.addEventListener('change', function () {
+          var t = tarifChoisi();
+          buyBtn.textContent = 'Acheter — ' + t.prix + ' € (' + (tarifLabel[t.type] || t.type) + ')';
+        });
+      });
+      buyBtn.addEventListener('click', function () {
+        var t = tarifChoisi();
+        var cart = getCart();
+        var evTarif = Object.assign({}, ev, { prix: t.prix, tarif: t.type, tarifLabel: tarifLabel[t.type] || t.type });
+        if (cadeauCheck && cadeauCheck.checked) {
+          evTarif.cadeau = {
+            nom: (document.getElementById('cadeau-nom') || {}).value || '',
+            email: (document.getElementById('cadeau-email') || {}).value || '',
+            message: (document.getElementById('cadeau-msg') || {}).value || ''
+          };
+        }
+        window.CartCore.addItem(cart, evTarif, 1);
+        saveCart(cart);
+        updateBadge();
+        openCart();
+      });
+    }
   }
 
   /* ===== Panier v2 ===== */
