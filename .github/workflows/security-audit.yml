@@ -39,6 +39,15 @@ jobs:
           exit-code: '0'
           format: 'json'
           output: 'trivy-high.json'
+      - name: Upload Trivy reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-reports
+          path: |
+            trivy-critical.json
+            trivy-high.json
+          if-no-files-found: ignore
 
   sast:
     name: Semgrep (SAST — non bloquant)
@@ -51,8 +60,15 @@ jobs:
       - name: Install semgrep
         run: pip install semgrep
       - name: Semgrep scan
-        run: semgrep scan --config auto --metrics=off --json -o semgrep-report.json .
+        run: semgrep scan --config p/ci --metrics=off --json -o semgrep-report.json .
         continue-on-error: true
+      - name: Upload Semgrep report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: semgrep-report
+          path: semgrep-report.json
+          if-no-files-found: ignore
 
   dast:
     name: Nuclei (DAST — non bloquant)
@@ -71,19 +87,10 @@ jobs:
       - name: Stop server
         if: always()
         run: kill $(cat /tmp/http.pid) 2>/dev/null || true
-
-  upload:
-    name: Archive reports
-    needs: [sca, sast, dast]
-    runs-on: ubuntu-latest
-    if: always()
-    steps:
-      - uses: actions/upload-artifact@v4
+      - name: Upload Nuclei report
+        if: always()
+        uses: actions/upload-artifact@v4
         with:
-          name: security-reports
-          path: |
-            trivy-critical.json
-            trivy-high.json
-            semgrep-report.json
-            nuclei-report.jsonl
+          name: nuclei-report
+          path: nuclei-report.jsonl
           if-no-files-found: ignore
