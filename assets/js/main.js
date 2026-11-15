@@ -366,6 +366,7 @@
   var overlay = document.getElementById('cart-overlay');
   var panel = document.getElementById('cart-panel');
   var GIFT_KEY = 'aegis-cart-gift';
+  var validateGiftForm = null;
   function getGiftState() { try { return JSON.parse(localStorage.getItem(GIFT_KEY)) || { active: false, nom: '', email: '', message: '' }; } catch (e) { return { active: false, nom: '', email: '', message: '' }; } }
   function saveGiftState(g) { localStorage.setItem(GIFT_KEY, JSON.stringify(g)); }
   if (panel && !document.getElementById('cart-cadeau-box')) {
@@ -377,11 +378,13 @@
       '<span class="cadeau-label">🎁 Offrir à un ami ou un proche</span></label>' +
       '<div class="cadeau-fields" id="cadeau-fields" hidden>' +
       '<label for="cadeau-nom">Prénom et nom du bénéficiaire</label>' +
-      '<input type="text" id="cadeau-nom" autocomplete="off" placeholder="Ex. Camille Dupont">' +
+      '<input type="text" id="cadeau-nom" minlength="2" maxlength="50" autocomplete="off" placeholder="Ex. Camille Dupont">' +
       '<label for="cadeau-email">E-mail du bénéficiaire</label>' +
       '<input type="email" id="cadeau-email" autocomplete="off" placeholder="camille@exemple.fr">' +
       '<label for="cadeau-msg">Message personnalisé (facultatif)</label>' +
-      '<textarea id="cadeau-msg" rows="2" placeholder="Joyeux anniversaire !"></textarea>' +
+      '<textarea id="cadeau-msg" rows="2" maxlength="200" placeholder="Joyeux anniversaire !"></textarea>' +
+      '<button type="button" class="btn btn-outline btn-sm" id="cadeau-validate">Valider le cadeau</button>' +
+      '<p class="form-msg" id="cadeau-feedback" role="status" aria-live="polite"></p>' +
       '</div>';
     var totalsRef = document.getElementById('cart-totals');
     if (totalsRef && totalsRef.parentNode === panel) panel.insertBefore(cadeauBox, totalsRef);
@@ -392,6 +395,8 @@
     var cNom = document.getElementById('cadeau-nom');
     var cEmail = document.getElementById('cadeau-email');
     var cMsg = document.getElementById('cadeau-msg');
+    var cValBtn = document.getElementById('cadeau-validate');
+    var cFeedback = document.getElementById('cadeau-feedback');
     var initGift = getGiftState();
     cCheck.checked = !!initGift.active;
     cFields.hidden = !initGift.active;
@@ -399,11 +404,45 @@
     cEmail.value = initGift.email || '';
     cMsg.value = initGift.message || '';
     function persistGift() {
+      if (window.CartCore && window.CartCore.sanitizeNameInput) {
+        var cleanNom = window.CartCore.sanitizeNameInput(cNom.value);
+        if (cNom.value !== cleanNom) cNom.value = cleanNom;
+      }
+      var cleanEmail = cEmail.value.replace(/\s+/g, '').toLowerCase();
+      if (cEmail.value !== cleanEmail) cEmail.value = cleanEmail;
+      var cleanMsg = cMsg.value.replace(/[<>{}[\]$]/g, '');
+      if (cMsg.value !== cleanMsg) cMsg.value = cleanMsg;
       cFields.hidden = !cCheck.checked;
       saveGiftState({ active: cCheck.checked, nom: cNom.value.trim(), email: cEmail.value.trim(), message: cMsg.value.trim() });
     }
-    cCheck.addEventListener('change', persistGift);
+    cCheck.addEventListener('change', function () {
+      if (!cCheck.checked && cFeedback) { cFeedback.textContent = ''; cFeedback.className = 'form-msg'; }
+      persistGift();
+    });
     [cNom, cEmail, cMsg].forEach(function (el) { el.addEventListener('input', persistGift); });
+    validateGiftForm = function (showSuccess) {
+      if (!cCheck.checked) return true;
+      if (window.CartCore && window.CartCore.validateName) {
+        var vn = window.CartCore.validateName(cNom.value, 'Nom du bénéficiaire');
+        if (!vn.ok) { cFeedback.textContent = vn.error; cFeedback.className = 'form-msg ko'; return false; }
+      } else if (cNom.value.trim().length < 2) {
+        cFeedback.textContent = 'Nom du bénéficiaire requis (2 caractères min).'; cFeedback.className = 'form-msg ko'; return false;
+      }
+      var em = cEmail.value.trim().toLowerCase();
+      if (!em || em.indexOf('@') === -1 || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)) {
+        cFeedback.textContent = 'E-mail du bénéficiaire invalide (@ et domaine requis).'; cFeedback.className = 'form-msg ko'; return false;
+      }
+      if (/[<>{}[\]$]/.test(cMsg.value)) {
+        cFeedback.textContent = 'Message cadeau : caractères spéciaux non autorisés.'; cFeedback.className = 'form-msg ko'; return false;
+      }
+      if (showSuccess) {
+        cFeedback.textContent = 'Informations cadeau validées ✓'; cFeedback.className = 'form-msg ok';
+      } else {
+        cFeedback.textContent = ''; cFeedback.className = 'form-msg';
+      }
+      return true;
+    }
+    if (cValBtn) cValBtn.addEventListener('click', function () { persistGift(); validateGiftForm(true); });
   }
   function openCart(opts) {
     renderCart();
@@ -518,6 +557,7 @@
   if (payBtn) payBtn.addEventListener('click', function () {
     var cart = getCart();
     if (!cart.length) return;
+    if (typeof validateGiftForm === 'function' && !validateGiftForm(false)) return;
     var t = window.CartCore.computeTotals(cart, promoCode);
     payBtn.disabled = true;
     aegisPost('/payer_et_expedier', { client_id: 1, total: t.ttc, id: Date.now() % 100000 })
