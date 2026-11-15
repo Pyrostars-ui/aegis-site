@@ -32,4 +32,11 @@ for (const page of ['index.html', 'aide.html', 'compte.html', 'evenement.html', 
   assert.ok(!html.includes('events-data.js'), `${page} should not load hardcoded events-data.js`);
 }
 assert.ok(!fs.existsSync(path.join(__dirname, '..', 'assets', 'js', 'events-data.js')), 'events-data.js should be removed');
-console.log('✅ Tests unitaires : 9/9 OK');
+// Phone mask & international validation
+assert.strictEqual(C.formatPhoneInput('+33abc61234567899'), '+33 6 12 34 56 78');
+assert.strictEqual(C.formatPhoneInput('061234567899'), '06 12 34 56 78');
+assert.strictEqual(C.validatePhone('+33 6 12 34 56 78').ok, true);
+assert.strictEqual(C.validatePhone('+1 555 123 4567').ok, true);
+assert.strictEqual(C.validatePhone('+33 6 12 34').ok, false);
+assert.strictEqual(C.validatePhone('+33 6 12 ab 56 78').ok, false);
+console.log('✅ Tests unitaires : 15/15 OK');

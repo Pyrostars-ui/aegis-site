@@ -730,6 +730,13 @@
     document.getElementById('pf-cancel').addEventListener('click', function () {
       pform.hidden = true; editBtn.setAttribute('aria-expanded', 'false'); editBtn.textContent = 'Modifier le profil'; renderP();
     });
+    var pfTelInput = document.getElementById('pf-tel');
+    if (pfTelInput && window.CartCore && window.CartCore.formatPhoneInput) {
+      pfTelInput.addEventListener('input', function () {
+        var formatted = window.CartCore.formatPhoneInput(pfTelInput.value);
+        if (pfTelInput.value !== formatted) pfTelInput.value = formatted;
+      });
+    }
     pform.addEventListener('submit', function (e) {
       e.preventDefault();
       var msg = document.getElementById('pf-msg');
@@ -740,6 +747,12 @@
       var adresse = document.getElementById('pf-adresse').value.trim();
       if (prenom.length < 2 || nom.length < 2) { msg.textContent = 'Prénom et nom requis (2 caractères min).'; msg.className = 'form-msg ko'; return; }
       if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { msg.textContent = 'Adresse e-mail invalide.'; msg.className = 'form-msg ko'; return; }
+      if (window.CartCore && window.CartCore.validatePhone) {
+        var phoneCheck = window.CartCore.validatePhone(tel);
+        if (!phoneCheck.ok) { msg.textContent = phoneCheck.error; msg.className = 'form-msg ko'; return; }
+        tel = phoneCheck.formatted;
+        if (pfTelInput) pfTelInput.value = tel;
+      }
       var updatedP = { prenom: prenom, nom: nom, email: email, tel: tel, adresse: adresse };
       localStorage.setItem(PKEY, JSON.stringify(updatedP));
       pushProfileToFs(updatedP);
