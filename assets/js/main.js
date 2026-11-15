@@ -45,7 +45,7 @@
       a.href = 'evenement.html?id=' + encodeURIComponent(ev.id);
       a.setAttribute('data-category', ev.category);
       a.innerHTML =
-        '<img class="card-img" src="' + esc(ev.img) + '" alt="">' +
+        '<img class="card-img" src="' + esc(ev.img) + '" alt="" loading="lazy" decoding="async">' +
         '<div class="card-body">' +
         '<span class="card-tag">' + esc(ev.catLabel) + '</span>' +
         '<h3 class="card-title-link">' + esc(ev.title) + '</h3>' +
