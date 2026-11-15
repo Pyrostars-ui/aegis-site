@@ -471,7 +471,53 @@
     }
     if (cValBtn) cValBtn.addEventListener('click', function () { persistGift(); validateGiftForm(true); });
   }
+  function resetCartSuccessState() {
+    var suc = document.getElementById('cart-success-state');
+    if (suc) suc.hidden = true;
+    if (!panel) return;
+    ['cart-items', 'cart-cadeau-box', 'cart-totals', 'cart-pay'].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el) el.hidden = false;
+    });
+    var pr = panel.querySelector('.cart-promo');
+    if (pr) pr.hidden = false;
+  }
+  function showCartSuccessState(info) {
+    if (!panel) return;
+    ['cart-items', 'cart-cadeau-box', 'cart-totals', 'cart-pay'].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el) el.hidden = true;
+    });
+    var pr = panel.querySelector('.cart-promo');
+    if (pr) pr.hidden = true;
+    var suc = document.getElementById('cart-success-state');
+    if (!suc) {
+      suc = document.createElement('div');
+      suc.id = 'cart-success-state';
+      suc.className = 'cart-success';
+      suc.setAttribute('role', 'status');
+      suc.setAttribute('aria-live', 'polite');
+      panel.appendChild(suc);
+    }
+    var giftLine = info.gift && info.gift.nom
+      ? '<p class="card-meta">🎁 Cadeau pour <strong>' + esc(info.gift.nom) + '</strong> (' + esc(info.gift.email) + ')</p>'
+      : '';
+    suc.innerHTML =
+      '<span class="sim-badge">Mode simulation</span>' +
+      '<div class="cart-success-head"><img src="assets/img/emoji-success.svg" alt=""><h3>Paiement simulé réussi</h3></div>' +
+      '<p class="card-meta">Montant réglé : <strong>' + esc(info.total) + ' € TTC</strong> (' + esc(info.count) + ' billet(s))</p>' +
+      giftLine +
+      '<div class="cart-success-track">Suivi : ' + esc(info.suivi) + '</div>' +
+      '<div class="form-actions">' +
+      '<a class="btn btn-primary btn-sm" href="compte.html">Voir mes billets</a>' +
+      '<button type="button" class="btn btn-outline btn-sm" id="cart-success-close">Continuer</button>' +
+      '</div>';
+    suc.hidden = false;
+    var closeSuc = document.getElementById('cart-success-close');
+    if (closeSuc) closeSuc.addEventListener('click', function () { resetCartSuccessState(); closeCart(); });
+  }
   function openCart(opts) {
+    resetCartSuccessState();
     renderCart();
     if (overlay) overlay.hidden = false;
     if (panel) panel.hidden = false;
@@ -586,8 +632,12 @@
     if (!cart.length) return;
     if (typeof validateGiftForm === 'function' && !validateGiftForm(false)) return;
     var t = window.CartCore.computeTotals(cart, promoCode);
+    var totalCount = cart.reduce(function (s, it) { return s + (Number(it.qty) || 1); }, 0);
+    var origText = payBtn.textContent;
     payBtn.disabled = true;
+    payBtn.textContent = 'Simulation du paiement…';
     aegisPost('/payer_et_expedier', { client_id: 1, total: t.ttc, id: Date.now() % 100000 })
+      .catch(function () { return { ok: true, simulated: true, suivi: window.CartCore.makeTrackNumber() }; })
       .then(function (res) {
         var suivi = (res && res.suivi) || window.CartCore.makeTrackNumber();
         return syncTicketsFromFs().then(function (existing) {
@@ -607,16 +657,25 @@
           var gf = document.getElementById('cadeau-fields');
           if (gc) gc.checked = false;
           if (gf) gf.hidden = true;
-          return Promise.all([pushTicketsToFs(list), pushCartToFs([])]).then(function () { return suivi; });
+          return Promise.all([pushTicketsToFs(list), pushCartToFs([])]).then(function () {
+            return { suivi: suivi, total: (Number(t.ttc) || 0).toFixed(2), count: totalCount, gift: giftPayload };
+          });
         });
       })
-      .then(function (suivi) {
-        updateBadge(); renderCart(); closeCart();
+      .then(function (info) {
+        updateBadge();
+        renderCart();
+        showCartSuccessState(info);
         if (typeof renderTicketsGlobal === 'function') renderTicketsGlobal();
-        alert('Paiement accepté ✅ Suivi : ' + suivi);
+        if (typeof showInfoBubble === 'function') showInfoBubble('Paiement simulé réussi ✓ Suivi : ' + info.suivi, false);
       })
-      .catch(function () { alert('Erreur réseau lors du paiement.'); })
-      .finally(function () { payBtn.disabled = false; });
+      .catch(function () {
+        if (typeof showInfoBubble === 'function') showInfoBubble('Erreur lors de la simulation de paiement.', true);
+      })
+      .finally(function () {
+        payBtn.disabled = false;
+        payBtn.textContent = origText;
+      });
   });
   updateBadge();
   renderCart();
