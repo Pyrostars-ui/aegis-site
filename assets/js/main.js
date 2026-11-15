@@ -215,7 +215,16 @@
   }
 
   /* ===== Firebase Auth + Panier v2 (synchronisé Cloud Firestore) ===== */
-  var FIREBASE_API_KEY = 'AIzaSyCq6vYsEiPJQpIDrjLFOQQQkR1DaK7WvxM';
+  var _fbKeyPromise = null;
+  function getFirebaseApiKey() {
+    if (!_fbKeyPromise) {
+      _fbKeyPromise = fetch('/__/firebase/init.json')
+        .then(function (r) { return r.ok ? r.json() : {}; })
+        .then(function (cfg) { return cfg.apiKey || ''; })
+        .catch(function () { return ''; });
+    }
+    return _fbKeyPromise;
+  }
   var AUTH_KEY = 'aegis-auth';
   var CART_KEY = 'aegis-cart';
   var TICKETS_KEY = 'aegis-tickets-list';
@@ -228,25 +237,28 @@
     if (!a || !a.uid || !a.idToken) return Promise.resolve(null);
     if (a.expiresAt && Date.now() < a.expiresAt - 60000) return Promise.resolve(a);
     if (!a.refreshToken || typeof fetch !== 'function') return Promise.resolve(a);
-    return fetch('https://securetoken.googleapis.com/v1/token?key=' + FIREBASE_API_KEY, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: 'grant_type=refresh_token&refresh_token=' + encodeURIComponent(a.refreshToken)
-    })
-      .then(function (r) { return r.ok ? r.json() : null; })
-      .then(function (d) {
-        if (!d || !d.id_token) { saveAuth(null); return null; }
-        var updated = {
-          uid: d.user_id || a.uid,
-          email: a.email,
-          idToken: d.id_token,
-          refreshToken: d.refresh_token || a.refreshToken,
-          expiresAt: Date.now() + (Number(d.expires_in) || 3600) * 1000
-        };
-        saveAuth(updated);
-        return updated;
+    return getFirebaseApiKey().then(function (apiKey) {
+      if (!apiKey) return a;
+      return fetch('https://securetoken.googleapis.com/v1/token?key=' + encodeURIComponent(apiKey), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'grant_type=refresh_token&refresh_token=' + encodeURIComponent(a.refreshToken)
       })
-      .catch(function () { return a; });
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (d) {
+          if (!d || !d.id_token) { saveAuth(null); return null; }
+          var updated = {
+            uid: d.user_id || a.uid,
+            email: a.email,
+            idToken: d.id_token,
+            refreshToken: d.refresh_token || a.refreshToken,
+            expiresAt: Date.now() + (Number(d.expires_in) || 3600) * 1000
+          };
+          saveAuth(updated);
+          return updated;
+        })
+        .catch(function () { return a; });
+    });
   }
   function fsPatchUserDoc(collection, uid, fields, token) {
     return fetch(FS_BASE + '/' + collection + '/' + encodeURIComponent(uid), {
@@ -518,10 +530,13 @@
     if (logoutBtn) logoutBtn.hidden = !signedIn;
   }
   function authEndpoint(action, payload) {
-    return fetch('https://identitytoolkit.googleapis.com/v1/accounts:' + action + '?key=' + FIREBASE_API_KEY, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(Object.assign({ returnSecureToken: true }, payload))
+    return getFirebaseApiKey().then(function (apiKey) {
+      if (!apiKey) throw new Error('MISSING_CONFIG');
+      return fetch('https://identitytoolkit.googleapis.com/v1/accounts:' + action + '?key=' + encodeURIComponent(apiKey), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(Object.assign({ returnSecureToken: true }, payload))
+      });
     }).then(function (r) {
       return r.json().then(function (d) {
         if (!r.ok) {
