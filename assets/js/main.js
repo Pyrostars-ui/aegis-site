@@ -45,13 +45,15 @@
       a.href = 'evenement.html?id=' + encodeURIComponent(ev.id);
       a.setAttribute('data-category', ev.category);
       a.innerHTML =
-        '<img class="card-img" src="' + esc(ev.img) + '" alt="" onerror="this.src=\'assets/img/hero-concert.jpg\'">' +
+        '<img class="card-img" src="' + esc(ev.img) + '" alt="">' +
         '<div class="card-body">' +
         '<span class="card-tag">' + esc(ev.catLabel) + '</span>' +
         '<h3 class="card-title-link">' + esc(ev.title) + '</h3>' +
         '<p class="card-meta">' + esc(ev.date) + ' · ' + esc(ev.lieu) + '</p>' +
         '<p class="card-foot"><span class="card-price">' + esc(ev.prix) + ' €</span>' +
         '<span class="card-stock' + (ev.stock < 20 ? ' low' : '') + '">' + (ev.stock < 20 ? 'Stock faible' : esc(ev.stock) + ' places') + '</span></p></div>';
+      var cardImg = a.querySelector('.card-img');
+      if (cardImg) cardImg.addEventListener('error', function () { this.src = 'assets/img/hero-concert.jpg'; }, { once: true });
       container.appendChild(a);
     });
   }
