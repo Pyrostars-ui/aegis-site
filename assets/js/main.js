@@ -357,11 +357,38 @@
     }).catch(function () { return getTicketsLocal(); });
   }
   var badge = document.getElementById('cart-badge');
+  var navCartBadge = null;
+  (function initNavCart() {
+    var navMain = document.querySelector('.nav-main');
+    var navMenu = document.getElementById('nav-menu');
+    if (!navMain || document.getElementById('nav-cart-btn')) return;
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.id = 'nav-cart-btn';
+    btn.className = 'nav-cart';
+    btn.setAttribute('aria-label', 'Ouvrir le panier');
+    btn.title = 'Voir votre panier et valider vos billets';
+    btn.innerHTML =
+      '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>' +
+      '<span>Panier</span>' +
+      '<span class="nav-cart-badge" id="nav-cart-badge" hidden>0</span>';
+    if (navMenu && navMenu.parentNode === navMain) {
+      navMenu.insertAdjacentElement('afterend', btn);
+    } else {
+      var searchForm = document.getElementById('nav-search-form');
+      if (searchForm) navMain.insertBefore(btn, searchForm);
+      else navMain.appendChild(btn);
+    }
+    navCartBadge = document.getElementById('nav-cart-badge');
+    btn.addEventListener('click', function () {
+      if (document.getElementById('cart-panel')) openCart();
+      else location.href = 'evenements.html?openCart=1';
+    });
+  })();
   function updateBadge() {
-    if (!badge) return;
     var n = getCart().reduce(function (s, i) { return s + (i.qty || 0); }, 0);
-    badge.textContent = n;
-    badge.hidden = n === 0;
+    if (badge) { badge.textContent = n; badge.hidden = n === 0; }
+    if (navCartBadge) { navCartBadge.textContent = n; navCartBadge.hidden = n === 0; }
   }
   var overlay = document.getElementById('cart-overlay');
   var panel = document.getElementById('cart-panel');
@@ -593,6 +620,7 @@
   });
   updateBadge();
   renderCart();
+  if (new URLSearchParams(location.search).get('openCart') === '1' && panel) openCart();
   syncCartFromFs();
   syncTicketsFromFs();
 
@@ -984,6 +1012,31 @@
       emailEl.setCustomValidity(res.ok ? '' : res.error);
     });
   });
+
+  /* ===== Infobulles explicatives sur les champs validés ===== */
+  (function initInfoTips() {
+    var tips = {
+      'pf-prenom': 'Lettres uniquement (2 à 50 caractères, sans chiffres ni symboles).',
+      'pf-nom': 'Lettres uniquement (2 à 50 caractères, sans chiffres ni symboles).',
+      'pf-email': 'Converti en minuscules. Les domaines jetables ou invalides sont bloqués.',
+      'pf-tel': 'Format international (+33 6 12 34 56 78) ou 06..., chiffres uniquement.',
+      'pf-adresse': 'Saisissez votre rue puis choisissez une suggestion avec code postal (4-5 chiffres).',
+      'cadeau-nom': 'Prénom et nom du bénéficiaire (2 lettres min., sans caractères spéciaux).',
+      'cadeau-email': 'E-mail valide avec @ et domaine autorisé pour recevoir le billet cadeau.'
+    };
+    Object.keys(tips).forEach(function (forId) {
+      var lbl = document.querySelector('label[for="' + forId + '"]');
+      if (!lbl || lbl.querySelector('.info-tip')) return;
+      var tip = document.createElement('span');
+      tip.className = 'info-tip';
+      tip.tabIndex = 0;
+      tip.textContent = 'i';
+      tip.setAttribute('role', 'note');
+      tip.setAttribute('aria-label', tips[forId]);
+      tip.setAttribute('data-tip', tips[forId]);
+      lbl.appendChild(tip);
+    });
+  })();
 
   /* ===== Bulle info confirmation / erreur (tous formulaires) ===== */
   var toastTimer = null;
