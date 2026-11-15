@@ -62,6 +62,26 @@
   </div>
 </section>
 </main>
-<footer class="site-footer"><nav class="footer-links" aria-label="Liens utiles"><a href="index.html">Accueil</a><a href="evenements.html">Événements</a><a href="aide.html">Aide</a><a href="compte.html">Mon compte</a><a href="mentions-legales.html">Mentions légales</a></nav><p class="footer-bottom">© 2026 BilletPulse</p></footer>
+<footer class="site-footer">
+  <div class="footer-cols">
+    <div><h3>BilletPulse</h3><p>Billetterie officielle — servi par le runtime AEGIS (C11).</p></div>
+    <nav aria-label="Liens utiles"><h3>Liens</h3><ul>
+      <li><a href="index.html">Accueil</a></li>
+      <li><a href="evenements.html">Événements</a></li>
+      <li><a href="aide.html">Aide</a></li>
+      <li><a href="compte.html">Mon compte</a></li>
+      <li><a href="mentions-legales.html">Mentions légales</a></li>
+    </ul></nav>
+    <div><h3>Newsletter</h3>
+      <form id="newsletter-form" class="newsletter-form">
+        <label class="sr-only" for="nl-email">Votre e-mail</label>
+        <input type="email" id="nl-email" required placeholder="vous@exemple.fr">
+        <button class="btn btn-primary" type="submit">S'inscrire</button>
+      </form>
+      <p class="form-msg" id="nl-msg" aria-live="polite"></p>
+    </div>
+  </div>
+  <p class="footer-bottom">© 2026 BilletPulse — Projet AEGIS (runtime C11, licence MIT/Apache-2.0)</p>
+</footer>
 <script src="assets/js/cart-core.js"></script><script src="assets/js/main.js"></script>
 </body></html>
