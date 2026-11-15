@@ -15,4 +15,11 @@ let cart = []; C.addItem(cart, {title:'A', price:10}, 1); C.addItem(cart, {title
 assert.strictEqual(cart[0].qty, 3);
 // track number format
 assert.match(C.makeTrackNumber(), /^TRK-2026-FR-\d{4}$/);
-console.log('✅ Tests unitaires : 6/6 OK');
+// compte.html must include cart overlay & panel alongside cart-fab
+const fs = require('fs');
+const path = require('path');
+const compteHtml = fs.readFileSync(path.join(__dirname, '..', 'compte.html'), 'utf8');
+for (const id of ['cart-fab', 'cart-overlay', 'cart-panel', 'cart-items', 'cart-totals', 'cart-close', 'cart-pay']) {
+  assert.ok(compteHtml.includes(`id="${id}"`), `compte.html missing id="${id}"`);
+}
+console.log('✅ Tests unitaires : 7/7 OK');
