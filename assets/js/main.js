@@ -226,17 +226,37 @@
   function renderCart() {
     var itemsEl = document.getElementById('cart-items');
     var totalsEl = document.getElementById('cart-totals');
+    var payEl = document.getElementById('cart-pay');
     if (!itemsEl) return;
     var cart = getCart();
     itemsEl.innerHTML = '';
+    if (payEl) payEl.disabled = cart.length === 0;
+    if (!cart.length) {
+      var empty = document.createElement('p');
+      empty.className = 'cart-empty';
+      empty.textContent = 'Votre panier est vide. Ajoutez des billets depuis le catalogue pour commencer.';
+      itemsEl.appendChild(empty);
+      if (totalsEl) totalsEl.replaceChildren();
+      return;
+    }
     cart.forEach(function (it, idx) {
+      var qty = Number(it.qty) || 0;
+      var unitPrice = Number(it.price) || 0;
+      var lineTotal = (unitPrice * qty).toFixed(2);
+      var metaParts = [];
+      if (it.tarifLabel) metaParts.push(it.tarifLabel);
+      metaParts.push(unitPrice.toFixed(2) + ' € / billet');
+      if (it.cadeau && it.cadeau.destinataire) metaParts.push('🎁 Cadeau : ' + it.cadeau.destinataire);
+      else if (it.cadeau) metaParts.push('🎁 Cadeau');
+
       var row = document.createElement('div');
       row.className = 'cart-item';
-      row.innerHTML = '<span class="ci-name">' + esc(it.event) + '</span>' +
+      row.innerHTML = '<div class="ci-info"><span class="ci-name">' + esc(it.event) + '</span>' +
+        '<span class="ci-meta">' + esc(metaParts.join(' · ')) + '</span></div>' +
         '<span class="ci-qty"><button class="qty-btn" data-i="' + idx + '" data-d="-1" aria-label="Diminuer">−</button>' +
-        '<span>' + (Number(it.qty)||0) + '</span>' +
+        '<span>' + qty + '</span>' +
         '<button class="qty-btn" data-i="' + idx + '" data-d="1" aria-label="Augmenter">+</button></span>' +
-        '<span class="ci-price">' + (Number(it.price)||0 * (Number(it.qty)||0)).toFixed(2) + ' €</span>' +
+        '<span class="ci-price">' + lineTotal + ' €</span>' +
         '<button class="icon-btn ci-del" data-i="' + idx + '" aria-label="Supprimer"><span class="material-symbols-outlined">delete</span></button>';
       itemsEl.appendChild(row);
     });

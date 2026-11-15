@@ -22,6 +22,7 @@ const compteHtml = fs.readFileSync(path.join(__dirname, '..', 'compte.html'), 'u
 for (const id of ['cart-fab', 'cart-overlay', 'cart-panel', 'cart-items', 'cart-totals', 'cart-close', 'cart-pay']) {
   assert.ok(compteHtml.includes(`id="${id}"`), `compte.html missing id="${id}"`);
 }
+assert.strictEqual(compteHtml.split('id="cart-fab"').length - 1, 1, 'compte.html must have exactly one id="cart-fab"');
 // Every page using material-symbols-outlined must load the Material Symbols Outlined font
 for (const page of ['index.html', 'aide.html', 'compte.html', 'evenement.html', 'evenements.html']) {
   const html = fs.readFileSync(path.join(__dirname, '..', page), 'utf8');
