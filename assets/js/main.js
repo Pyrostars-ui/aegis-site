@@ -55,6 +55,7 @@
       container.appendChild(a);
     });
   }
+  var refreshFilters = null;
   if (grid && window.AEGIS_EVENTS) {
     renderCards(window.AEGIS_EVENTS, grid);
     /* recherche + filtres */
@@ -72,6 +73,7 @@
       renderCards(list, grid);
       if (noRes) noRes.hidden = list.length > 0;
     }
+    refreshFilters = applyFilters;
     if (search) search.addEventListener('input', applyFilters);
     chips.forEach(function (c) {
       c.addEventListener('click', function () {
@@ -85,9 +87,11 @@
 
   /* ===== Page détail événement ===== */
   var detail = document.getElementById('event-detail');
-  if (detail && window.AEGIS_EVENTS) {
+  function renderDetail() {
+    if (!detail || !window.AEGIS_EVENTS) return;
     var id = new URLSearchParams(location.search).get('id');
     var ev = window.AEGIS_EVENTS.find(function (e) { return e.id === id; }) || window.AEGIS_EVENTS[0];
+    if (!ev) return;
     document.title = ev.title + ' — AEGIS Tickets';
     detail.innerHTML =
       '<section class="event-hero"><img src="' + esc(ev.img) + '" alt="" class="event-hero-img">' +
@@ -152,6 +156,41 @@
         openCart();
       });
     }
+  }
+  if (detail && window.AEGIS_EVENTS) renderDetail();
+
+  /* ===== Catalogue dynamique Cloud Firestore (repli sur events-data.js) ===== */
+  function parseFsVal(v) {
+    if (!v || typeof v !== 'object') return null;
+    if ('stringValue' in v) return v.stringValue;
+    if ('integerValue' in v) return Number(v.integerValue);
+    if ('doubleValue' in v) return Number(v.doubleValue);
+    if ('booleanValue' in v) return v.booleanValue;
+    if ('arrayValue' in v) return (v.arrayValue.values || []).map(parseFsVal);
+    if ('mapValue' in v) {
+      var o = {};
+      var mf = v.mapValue.fields || {};
+      Object.keys(mf).forEach(function (k) { o[k] = parseFsVal(mf[k]); });
+      return o;
+    }
+    return null;
+  }
+  if ((grid || detail) && typeof fetch === 'function') {
+    fetch('https://firestore.googleapis.com/v1/projects/com-example-myapplicatio-83790/databases/(default)/documents/evenements?pageSize=50')
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (data) {
+        if (!data || !Array.isArray(data.documents) || !data.documents.length) return;
+        var remote = data.documents.map(function (doc) {
+          var f = doc.fields || {};
+          var obj = { id: doc.name.split('/').pop() };
+          Object.keys(f).forEach(function (k) { obj[k] = parseFsVal(f[k]); });
+          return obj;
+        });
+        window.AEGIS_EVENTS = remote;
+        if (refreshFilters) refreshFilters();
+        if (detail) renderDetail();
+      })
+      .catch(function () { /* repli silencieux sur window.AEGIS_EVENTS */ });
   }
 
   /* ===== Panier v2 ===== */

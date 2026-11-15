@@ -1,0 +1,40 @@
+rules_version = '2';
+
+// ===============================================================
+// Assumed Data Model
+// ===============================================================
+//
+// Collection: evenements
+// Document ID: {eventId} (slug string, e.g., "sunwave-festival-3-jours")
+// Visibility: Public read-only catalog (no PII). Managed server-side / Admin SDK only.
+// Fields (from assets/js/events-data.js):
+//   - id: string (required) - Event slug identifier
+//   - title: string (required) - Event display title
+//   - category: string (required) - Category key (e.g., "festival", "concert", "theatre", "sport")
+//   - catLabel: string (required) - Localized category label
+//   - date: string (required) - Display date string
+//   - lieu: string (required) - Venue name and city
+//   - prix: number (required) - Base ticket price
+//   - stock: number (required) - Remaining ticket count
+//   - img: string (required) - Relative image asset path
+//   - desc: string (required) - Event description
+//   - tarifs: list<map> (required) - Ticket tiers ({ type: string, label: string, prix: number })
+//
+// ===============================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Default-deny all reads and writes across the entire database.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Public event catalog: anyone can read/query events; all client writes are denied.
+    // Events are managed exclusively server-side (Admin SDK) or via the Firebase Console.
+    match /evenements/{eventId} {
+      allow get, list: if true;
+      allow create, update, delete: if false;
+    }
+  }
+}

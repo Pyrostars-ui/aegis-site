@@ -5,8 +5,9 @@ node_modules
 *.log
 .DS_Store
 
-# Local env
+# Local env & Firebase CLI cache
 .env
+.firebase/
 
 # OS generated files
 .DS_Store
