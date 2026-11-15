@@ -106,17 +106,7 @@
         return '<label class="tarif-option"><input type="radio" name="tarif" value="' + esc(t.type) + '" data-prix="' + Number(t.prix) + '"' + (i === 0 ? ' checked' : '') + '>' +
           '<span class="tarif-label">' + esc(t.label) + '</span><span class="tarif-prix">' + Number(t.prix) + ' €</span></label>';
       }).join('') +
-      '<p class="tarif-note">TVA 20 % incluse dans le total du panier.</p>' +
-      '<div class="cadeau-box"><label class="cadeau-option"><input type="checkbox" id="cadeau-check">' +
-      '<span class="cadeau-label">🎁 Offrir à un ami ou un proche</span></label>' +
-      '<div class="cadeau-fields" id="cadeau-fields" hidden>' +
-      '<label for="cadeau-nom">Prénom et nom du bénéficiaire</label>' +
-      '<input type="text" id="cadeau-nom" autocomplete="off" placeholder="Ex. Camille Dupont">' +
-      '<label for="cadeau-email">E-mail du bénéficiaire</label>' +
-      '<input type="email" id="cadeau-email" autocomplete="off" placeholder="camille@exemple.fr">' +
-      '<label for="cadeau-msg">Message personnalisé (facultatif)</label>' +
-      '<textarea id="cadeau-msg" rows="2" placeholder="Joyeux anniversaire !"></textarea>' +
-      '</div></div></div></section>' +
+      '<p class="tarif-note">TVA 20 % incluse dans le total du panier.</p></div></section>' +
       '<section class="buy-box card"><div class="card-body">' +
       '<p class="card-stock' + (ev.stock < 20 ? ' low' : '') + '">' + (ev.stock < 20 ? '⚠ Stock faible : ' + esc(ev.stock) + ' places' : esc(ev.stock) + ' places disponibles') + '</p>' +
       '<button class="btn btn-primary btn-lg" id="ev-buy">Acheter — ' + esc(ev.prix) + ' €</button>' +
@@ -126,13 +116,6 @@
       return r ? { type: r.value, prix: Number(r.dataset.prix) } : { type: 'standard', prix: ev.prix };
     }
     var tarifLabel = { standard: 'Standard', premium: 'Premium', vip: 'VIP' };
-    var cadeauCheck = document.getElementById('cadeau-check');
-    var cadeauFields = document.getElementById('cadeau-fields');
-    if (cadeauCheck && cadeauFields) {
-      cadeauCheck.addEventListener('change', function () {
-        cadeauFields.hidden = !cadeauCheck.checked;
-      });
-    }
     var buyBtn = document.getElementById('ev-buy');
     if (buyBtn) {
       var radios = document.querySelectorAll('input[name="tarif"]');
@@ -146,17 +129,11 @@
         var t = tarifChoisi();
         var cart = getCart();
         var evTarif = Object.assign({}, ev, { prix: t.prix, tarif: t.type, tarifLabel: tarifLabel[t.type] || t.type });
-        if (cadeauCheck && cadeauCheck.checked) {
-          evTarif.cadeau = {
-            nom: (document.getElementById('cadeau-nom') || {}).value || '',
-            email: (document.getElementById('cadeau-email') || {}).value || '',
-            message: (document.getElementById('cadeau-msg') || {}).value || ''
-          };
-        }
         window.CartCore.addItem(cart, evTarif, 1);
         saveCart(cart);
         updateBadge();
-        openCart();
+        renderCart();
+        openCart({ skipSync: true });
       });
     }
   }
@@ -288,7 +265,9 @@
       }, a.idToken);
     }).catch(function () {});
   }
+  var lastCartSaveTs = 0;
   function saveCart(c) {
+    lastCartSaveTs = Date.now();
     localStorage.setItem(CART_KEY, JSON.stringify(c));
     pushCartToFs(c);
   }
@@ -303,17 +282,17 @@
     }).catch(function () {});
   }
   function syncCartFromFs() {
-    if (typeof fetch !== 'function') return Promise.resolve();
+    if (typeof fetch !== 'function' || (Date.now() - lastCartSaveTs < 2500)) return Promise.resolve();
     return ensureFreshToken().then(function (a) {
-      if (!a) return;
+      if (!a || (Date.now() - lastCartSaveTs < 2500)) return;
       return fsGetUserDoc('paniers', a.uid, a.idToken).then(function (doc) {
-        if (!doc || !doc.fields) return;
+        if (!doc || !doc.fields || (Date.now() - lastCartSaveTs < 2500)) return;
         var items = parseFsVal(doc.fields.items);
         var remotePromo = parseFsVal(doc.fields.promoCode);
         if (Array.isArray(items)) localStorage.setItem(CART_KEY, JSON.stringify(items));
         promoCode = remotePromo ? window.CartCore.applyPromo(String(remotePromo)) : null;
         updateBadge();
-        if (panel && !panel.hidden) renderCart();
+        renderCart();
       });
     }).catch(function () {});
   }
@@ -343,12 +322,54 @@
   }
   var overlay = document.getElementById('cart-overlay');
   var panel = document.getElementById('cart-panel');
-  function openCart() {
+  var GIFT_KEY = 'aegis-cart-gift';
+  function getGiftState() { try { return JSON.parse(localStorage.getItem(GIFT_KEY)) || { active: false, nom: '', email: '', message: '' }; } catch (e) { return { active: false, nom: '', email: '', message: '' }; } }
+  function saveGiftState(g) { localStorage.setItem(GIFT_KEY, JSON.stringify(g)); }
+  if (panel && !document.getElementById('cart-cadeau-box')) {
+    var cadeauBox = document.createElement('div');
+    cadeauBox.id = 'cart-cadeau-box';
+    cadeauBox.className = 'cadeau-box';
+    cadeauBox.innerHTML =
+      '<label class="cadeau-option"><input type="checkbox" id="cadeau-check">' +
+      '<span class="cadeau-label">🎁 Offrir à un ami ou un proche</span></label>' +
+      '<div class="cadeau-fields" id="cadeau-fields" hidden>' +
+      '<label for="cadeau-nom">Prénom et nom du bénéficiaire</label>' +
+      '<input type="text" id="cadeau-nom" autocomplete="off" placeholder="Ex. Camille Dupont">' +
+      '<label for="cadeau-email">E-mail du bénéficiaire</label>' +
+      '<input type="email" id="cadeau-email" autocomplete="off" placeholder="camille@exemple.fr">' +
+      '<label for="cadeau-msg">Message personnalisé (facultatif)</label>' +
+      '<textarea id="cadeau-msg" rows="2" placeholder="Joyeux anniversaire !"></textarea>' +
+      '</div>';
+    var totalsRef = document.getElementById('cart-totals');
+    if (totalsRef && totalsRef.parentNode === panel) panel.insertBefore(cadeauBox, totalsRef);
+    else panel.appendChild(cadeauBox);
+
+    var cCheck = document.getElementById('cadeau-check');
+    var cFields = document.getElementById('cadeau-fields');
+    var cNom = document.getElementById('cadeau-nom');
+    var cEmail = document.getElementById('cadeau-email');
+    var cMsg = document.getElementById('cadeau-msg');
+    var initGift = getGiftState();
+    cCheck.checked = !!initGift.active;
+    cFields.hidden = !initGift.active;
+    cNom.value = initGift.nom || '';
+    cEmail.value = initGift.email || '';
+    cMsg.value = initGift.message || '';
+    function persistGift() {
+      cFields.hidden = !cCheck.checked;
+      saveGiftState({ active: cCheck.checked, nom: cNom.value.trim(), email: cEmail.value.trim(), message: cMsg.value.trim() });
+    }
+    cCheck.addEventListener('change', persistGift);
+    [cNom, cEmail, cMsg].forEach(function (el) { el.addEventListener('input', persistGift); });
+  }
+  function openCart(opts) {
+    renderCart();
     if (overlay) overlay.hidden = false;
     if (panel) panel.hidden = false;
-    renderCart();
-    syncCartFromFs();
-    syncTicketsFromFs(function () { if (panel && !panel.hidden) renderCart(); });
+    if (!(opts && opts.skipSync)) syncCartFromFs();
+    if (!getTicketsLocal().length) {
+      syncTicketsFromFs(function () { renderCart(); });
+    }
   }
   function closeCart() { if (overlay) overlay.hidden = true; if (panel) panel.hidden = true; }
   var fab = document.getElementById('cart-fab');
@@ -461,12 +482,21 @@
         var suivi = (res && res.suivi) || window.CartCore.makeTrackNumber();
         return syncTicketsFromFs().then(function (existing) {
           var list = Array.isArray(existing) ? existing.slice() : [];
+          var gift = getGiftState();
+          var giftPayload = gift && gift.active ? { nom: gift.nom, email: gift.email, message: gift.message } : null;
           cart.forEach(function (it) {
-            list.push({ event: it.event, qty: it.qty, price: it.price, date: new Date().toISOString().slice(0, 10), suivi: suivi, status: 'upcoming' });
+            var ticket = { event: it.event, qty: it.qty, price: it.price, date: new Date().toISOString().slice(0, 10), suivi: suivi, status: 'upcoming' };
+            if (giftPayload) ticket.cadeau = giftPayload;
+            list.push(ticket);
           });
           localStorage.setItem(TICKETS_KEY, JSON.stringify(list));
           promoCode = null;
           localStorage.removeItem(CART_KEY);
+          localStorage.removeItem(GIFT_KEY);
+          var gc = document.getElementById('cadeau-check');
+          var gf = document.getElementById('cadeau-fields');
+          if (gc) gc.checked = false;
+          if (gf) gf.hidden = true;
           return Promise.all([pushTicketsToFs(list), pushCartToFs([])]).then(function () { return suivi; });
         });
       })
@@ -479,6 +509,7 @@
       .finally(function () { payBtn.disabled = false; });
   });
   updateBadge();
+  renderCart();
   syncCartFromFs();
   syncTicketsFromFs();
 
