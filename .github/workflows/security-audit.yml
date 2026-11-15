@@ -33,8 +33,11 @@ jobs:
       - uses: actions/checkout@v4
       - name: Run actionlint
         run: |
-          bash <(curl -fsSL https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash)
-          ./actionlint
+          TAG="$(curl -fsSLI -o /dev/null -w '%{url_effective}' https://github.com/rhysd/actionlint/releases/latest | sed 's|.*/||')"
+          VER="${TAG#v}"
+          curl -fsSL "https://github.com/rhysd/actionlint/releases/download/${TAG}/actionlint_${VER}_linux_amd64.tar.gz" -o /tmp/actionlint.tar.gz
+          tar -xzf /tmp/actionlint.tar.gz -C /tmp actionlint
+          /tmp/actionlint
       - name: Run hadolint on Dockerfiles
         run: |
           DOCKERFILES="$(find . -maxdepth 4 -type f \( -name 'Dockerfile' -o -name 'Dockerfile.*' \))"
