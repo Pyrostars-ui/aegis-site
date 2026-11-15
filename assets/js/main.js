@@ -51,7 +51,26 @@
         '<h3 class="card-title-link">' + esc(ev.title) + '</h3>' +
         '<p class="card-meta">' + esc(ev.date) + ' · ' + esc(ev.lieu) + '</p>' +
         '<p class="card-foot"><span class="card-price">' + esc(ev.prix) + ' €</span>' +
-        '<span class="card-stock' + (ev.stock < 20 ? ' low' : '') + '">' + (ev.stock < 20 ? 'Stock faible' : esc(ev.stock) + ' places') + '</span></p></div>';
+        '<span class="card-stock' + (ev.stock < 20 ? ' low' : '') + '">' + (ev.stock < 20 ? 'Stock faible' : esc(ev.stock) + ' places') + '</span></p>' +
+        '<button type="button" class="btn btn-cta btn-sm card-buy-btn">' +
+        '<span class="material-symbols-outlined" aria-hidden="true">confirmation_number</span>' +
+        '<span>Réserver</span></button></div>';
+      var cardBuy = a.querySelector('.card-buy-btn');
+      if (cardBuy) {
+        cardBuy.addEventListener('click', function (e) {
+          e.preventDefault();
+          e.stopPropagation();
+          if (!window.CartCore) return;
+          var cart = getCart();
+          var tarifLabel = { standard: 'Standard', premium: 'Premium', vip: 'VIP' };
+          var evTarif = Object.assign({}, ev, { tarif: 'standard', tarifLabel: tarifLabel.standard });
+          window.CartCore.addItem(cart, evTarif, 1);
+          saveCart(cart);
+          updateBadge();
+          renderCart();
+          openCart({ skipSync: true });
+        });
+      }
       var cardImg = a.querySelector('.card-img');
       if (cardImg) cardImg.addEventListener('error', function () { this.src = 'assets/img/hero-concert.jpg'; }, { once: true });
       container.appendChild(a);
@@ -152,7 +171,7 @@
       '<p class="tarif-note">TVA 20 % incluse dans le total du panier.</p></div></section>' +
       '<section class="buy-box card"><div class="card-body">' +
       '<p class="card-stock' + (ev.stock < 20 ? ' low' : '') + '">' + (ev.stock < 20 ? '⚠ Stock faible : ' + esc(ev.stock) + ' places' : esc(ev.stock) + ' places disponibles') + '</p>' +
-      '<button class="btn btn-primary btn-lg" id="ev-buy">Acheter — ' + esc(ev.prix) + ' €</button>' +
+      '<button class="btn btn-cta btn-lg" id="ev-buy"><span class="material-symbols-outlined" aria-hidden="true">confirmation_number</span><span class="btn-label">Réserver mes places — ' + esc(ev.prix) + ' €</span></button>' +
       '</div></section>';
     function tarifChoisi() {
       var r = document.querySelector('input[name="tarif"]:checked');
@@ -165,7 +184,10 @@
       radios.forEach(function (r) {
         r.addEventListener('change', function () {
           var t = tarifChoisi();
-          buyBtn.textContent = 'Acheter — ' + t.prix + ' € (' + (tarifLabel[t.type] || t.type) + ')';
+          var txt = 'Réserver mes places — ' + t.prix + ' € (' + (tarifLabel[t.type] || t.type) + ')';
+          var lbl = buyBtn.querySelector('.btn-label');
+          if (lbl) lbl.textContent = txt;
+          else buyBtn.textContent = txt;
         });
       });
       buyBtn.addEventListener('click', function () {
@@ -1116,7 +1138,10 @@
       'pf-ville': 'Nom de la ville obligatoire (lettres uniquement).',
       'pf-pays': 'Pays obligatoire (ex. France).',
       'cadeau-nom': 'Prénom et nom du bénéficiaire (2 lettres min., sans caractères spéciaux).',
-      'cadeau-email': 'E-mail valide avec @ et domaine autorisé pour recevoir le billet cadeau.'
+      'cadeau-email': 'E-mail valide avec @ et domaine autorisé pour recevoir le billet cadeau.',
+      'cf-nom': 'Lettres uniquement (2 à 50 caractères, sans chiffres ni symboles).',
+      'cf-email': 'Converti en minuscules. Les domaines jetables ou invalides sont bloqués.',
+      'cf-msg': 'Message obligatoire (10 à 1000 caractères, sans caractères < > { } [ ] $).'
     };
     Object.keys(tips).forEach(function (forId) {
       var lbl = document.querySelector('label[for="' + forId + '"]');
@@ -1179,13 +1204,41 @@
     nl.reset();
   });
   var cf = document.getElementById('contact-form');
+  var cfNomEl = document.getElementById('cf-nom');
+  if (cfNomEl && window.CartCore && window.CartCore.sanitizeNameInput) {
+    cfNomEl.addEventListener('input', function () {
+      var clean = window.CartCore.sanitizeNameInput(cfNomEl.value);
+      if (cfNomEl.value !== clean) cfNomEl.value = clean;
+    });
+  }
   if (cf) cf.addEventListener('submit', function (e) {
     e.preventDefault();
     var cfMsg = document.getElementById('cf-msg-out');
+    var cfNom = document.getElementById('cf-nom');
     var cfEmail = cf.querySelector('input[type="email"]');
+    var cfText = document.getElementById('cf-msg');
+    if (cfNom && window.CartCore && window.CartCore.validateName) {
+      var vn = window.CartCore.validateName(cfNom.value, 'Nom');
+      if (!vn.ok) { cfMsg.className = 'form-msg ko'; cfMsg.textContent = vn.error; cfNom.focus(); return; }
+    }
     if (cfEmail && window.CartCore && window.CartCore.validateEmail) {
       var res = window.CartCore.validateEmail(cfEmail.value);
-      if (!res.ok) { cfMsg.className = 'form-msg ko'; cfMsg.textContent = res.error; return; }
+      if (!res.ok) { cfMsg.className = 'form-msg ko'; cfMsg.textContent = res.error; cfEmail.focus(); return; }
+    }
+    if (cfText) {
+      var msgVal = (cfText.value || '').trim();
+      if (msgVal.length < 10 || msgVal.length > 1000) {
+        cfMsg.className = 'form-msg ko';
+        cfMsg.textContent = 'Message : doit contenir entre 10 et 1000 caractères.';
+        cfText.focus();
+        return;
+      }
+      if (/[<>{}\[\]$]/.test(msgVal)) {
+        cfMsg.className = 'form-msg ko';
+        cfMsg.textContent = 'Message : caractères spéciaux non autorisés (< > { } [ ] $).';
+        cfText.focus();
+        return;
+      }
     }
     cfMsg.className = 'form-msg ok';
     cfMsg.textContent = 'Message envoyé ✓ Nous revenons vers vous rapidement.';

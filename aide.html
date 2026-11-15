@@ -27,9 +27,9 @@
 </section>
 <section aria-label="Contact"><h2>Nous contacter</h2>
 <form class="contact-form card" id="contact-form">
-<div class="form-row"><label for="cf-nom">Nom</label><input id="cf-nom" required></div>
-<div class="form-row"><label for="cf-email">E-mail</label><input id="cf-email" type="email" required></div>
-<div class="form-row"><label for="cf-msg">Message</label><textarea id="cf-msg" rows="4" required></textarea></div>
+<div class="form-row"><label for="cf-nom">Nom</label><input id="cf-nom" maxlength="50" autocomplete="name" placeholder="Ex. Camille Dupont" required></div>
+<div class="form-row"><label for="cf-email">E-mail</label><input id="cf-email" type="email" autocomplete="email" placeholder="vous@exemple.fr" required></div>
+<div class="form-row"><label for="cf-msg">Message</label><textarea id="cf-msg" rows="4" minlength="10" maxlength="1000" placeholder="Décrivez votre demande (10 caractères minimum)..." required></textarea></div>
 <button class="btn btn-primary" type="submit">Envoyer</button>
 <p class="form-msg" id="cf-msg-out" aria-live="polite"></p>
 </form></section>
@@ -55,5 +55,6 @@
   </div>
   <p class="footer-bottom">© 2026 BilletPulse — Projet AEGIS (runtime C11, licence MIT/Apache-2.0)</p>
 </footer>
+<script src="assets/js/cart-core.js"></script>
 <script src="assets/js/main.js"></script>
 </body></html>
