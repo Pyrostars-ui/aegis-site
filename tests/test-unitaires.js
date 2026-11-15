@@ -22,4 +22,11 @@ const compteHtml = fs.readFileSync(path.join(__dirname, '..', 'compte.html'), 'u
 for (const id of ['cart-fab', 'cart-overlay', 'cart-panel', 'cart-items', 'cart-totals', 'cart-close', 'cart-pay']) {
   assert.ok(compteHtml.includes(`id="${id}"`), `compte.html missing id="${id}"`);
 }
-console.log('✅ Tests unitaires : 7/7 OK');
+// Every page using material-symbols-outlined must load the Material Symbols Outlined font
+for (const page of ['index.html', 'aide.html', 'compte.html', 'evenement.html', 'evenements.html']) {
+  const html = fs.readFileSync(path.join(__dirname, '..', page), 'utf8');
+  if (html.includes('material-symbols-outlined')) {
+    assert.ok(html.includes('Material+Symbols+Outlined'), `${page} uses material-symbols-outlined without loading the font`);
+  }
+}
+console.log('✅ Tests unitaires : 8/8 OK');
