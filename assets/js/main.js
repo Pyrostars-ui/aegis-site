@@ -267,7 +267,7 @@
 
   /* ===== Compte : profil éditable ===== */
   var PKEY = 'aegis-profile';
-  function defP() { return { prenom: 'Laury', nom: 'Ragouton', email: 'baciragouton@gmail.com', tel: '', adresse: '' }; }
+  function defP() { return { prenom: 'Adélaïde', nom: 'Bernstein', email: 'adelaide.bernstein@exemple.fr', tel: '', adresse: '' }; }
   function loadP() { try { return Object.assign(defP(), JSON.parse(localStorage.getItem(PKEY) || '{}')); } catch (e) { return defP(); } }
   var editBtn = document.getElementById('edit-profile');
   var pform = document.getElementById('profile-form');
