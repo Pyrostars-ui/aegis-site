@@ -670,10 +670,24 @@
       authSignupBtn.addEventListener('click', function () {
         var email = (document.getElementById('auth-email').value || '').trim();
         var password = document.getElementById('auth-password').value || '';
-        var prenom = (document.getElementById('auth-prenom').value || '').trim() || 'Client';
-        var nom = (document.getElementById('auth-nom').value || '').trim() || 'AEGIS';
+        var rawPrenom = (document.getElementById('auth-prenom').value || '').trim();
+        var rawNom = (document.getElementById('auth-nom').value || '').trim();
         if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { authMsg.textContent = 'Adresse e-mail invalide.'; authMsg.className = 'form-msg ko'; return; }
         if (password.length < 6) { authMsg.textContent = 'Mot de passe : 6 caractères minimum.'; authMsg.className = 'form-msg ko'; return; }
+        if (window.CartCore && window.CartCore.validateName) {
+          if (rawPrenom) {
+            var vp = window.CartCore.validateName(rawPrenom, 'Prénom');
+            if (!vp.ok) { authMsg.textContent = vp.error; authMsg.className = 'form-msg ko'; return; }
+            rawPrenom = vp.formatted;
+          }
+          if (rawNom) {
+            var vn = window.CartCore.validateName(rawNom, 'Nom');
+            if (!vn.ok) { authMsg.textContent = vn.error; authMsg.className = 'form-msg ko'; return; }
+            rawNom = vn.formatted;
+          }
+        }
+        var prenom = rawPrenom || 'Client';
+        var nom = rawNom || 'BilletPulse';
         authMsg.textContent = 'Création du compte et du panier Firestore…'; authMsg.className = 'form-msg';
         authEndpoint('signUp', { email: email, password: password })
           .then(function (d) {
@@ -730,11 +744,59 @@
     document.getElementById('pf-cancel').addEventListener('click', function () {
       pform.hidden = true; editBtn.setAttribute('aria-expanded', 'false'); editBtn.textContent = 'Modifier le profil'; renderP();
     });
+    ['pf-prenom', 'pf-nom', 'auth-prenom', 'auth-nom'].forEach(function (fieldId) {
+      var el = document.getElementById(fieldId);
+      if (el && window.CartCore && window.CartCore.sanitizeNameInput) {
+        el.addEventListener('input', function () {
+          var clean = window.CartCore.sanitizeNameInput(el.value);
+          if (el.value !== clean) el.value = clean;
+        });
+      }
+    });
     var pfTelInput = document.getElementById('pf-tel');
     if (pfTelInput && window.CartCore && window.CartCore.formatPhoneInput) {
       pfTelInput.addEventListener('input', function () {
         var formatted = window.CartCore.formatPhoneInput(pfTelInput.value);
         if (pfTelInput.value !== formatted) pfTelInput.value = formatted;
+      });
+    }
+    var pfAdresseInput = document.getElementById('pf-adresse');
+    var pfAdresseList = document.getElementById('pf-adresse-suggestions');
+    if (pfAdresseInput && pfAdresseList) {
+      var addrTimer = null;
+      pfAdresseInput.addEventListener('input', function () {
+        var q = pfAdresseInput.value.trim();
+        if (addrTimer) clearTimeout(addrTimer);
+        if (q.length < 4) { pfAdresseList.hidden = true; pfAdresseList.innerHTML = ''; return; }
+        addrTimer = setTimeout(function () {
+          fetch('https://api-adresse.data.gouv.fr/search/?q=' + encodeURIComponent(q) + '&limit=5')
+            .then(function (r) { return r.ok ? r.json() : null; })
+            .then(function (data) {
+              pfAdresseList.innerHTML = '';
+              var feats = (data && Array.isArray(data.features)) ? data.features : [];
+              if (!feats.length) { pfAdresseList.hidden = true; return; }
+              feats.forEach(function (f) {
+                var label = f && f.properties && f.properties.label;
+                if (!label) return;
+                var li = document.createElement('li');
+                var btn = document.createElement('button');
+                btn.type = 'button';
+                btn.textContent = label;
+                btn.addEventListener('click', function () {
+                  pfAdresseInput.value = label;
+                  pfAdresseList.hidden = true;
+                  pfAdresseList.innerHTML = '';
+                });
+                li.appendChild(btn);
+                pfAdresseList.appendChild(li);
+              });
+              pfAdresseList.hidden = !pfAdresseList.children.length;
+            })
+            .catch(function () { pfAdresseList.hidden = true; });
+        }, 250);
+      });
+      document.addEventListener('click', function (ev) {
+        if (ev.target !== pfAdresseInput && !pfAdresseList.contains(ev.target)) pfAdresseList.hidden = true;
       });
     }
     pform.addEventListener('submit', function (e) {
@@ -745,13 +807,29 @@
       var email = document.getElementById('pf-email').value.trim();
       var tel = document.getElementById('pf-tel').value.trim();
       var adresse = document.getElementById('pf-adresse').value.trim();
-      if (prenom.length < 2 || nom.length < 2) { msg.textContent = 'Prénom et nom requis (2 caractères min).'; msg.className = 'form-msg ko'; return; }
+      if (window.CartCore && window.CartCore.validateName) {
+        var vp = window.CartCore.validateName(prenom, 'Prénom');
+        if (!vp.ok) { msg.textContent = vp.error; msg.className = 'form-msg ko'; return; }
+        var vn = window.CartCore.validateName(nom, 'Nom');
+        if (!vn.ok) { msg.textContent = vn.error; msg.className = 'form-msg ko'; return; }
+        prenom = vp.formatted; nom = vn.formatted;
+        document.getElementById('pf-prenom').value = prenom;
+        document.getElementById('pf-nom').value = nom;
+      } else if (prenom.length < 2 || nom.length < 2) {
+        msg.textContent = 'Prénom et nom requis (2 caractères min).'; msg.className = 'form-msg ko'; return;
+      }
       if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { msg.textContent = 'Adresse e-mail invalide.'; msg.className = 'form-msg ko'; return; }
       if (window.CartCore && window.CartCore.validatePhone) {
         var phoneCheck = window.CartCore.validatePhone(tel);
         if (!phoneCheck.ok) { msg.textContent = phoneCheck.error; msg.className = 'form-msg ko'; return; }
         tel = phoneCheck.formatted;
         if (pfTelInput) pfTelInput.value = tel;
+      }
+      if (window.CartCore && window.CartCore.validateAddress) {
+        var addrCheck = window.CartCore.validateAddress(adresse);
+        if (!addrCheck.ok) { msg.textContent = addrCheck.error; msg.className = 'form-msg ko'; return; }
+        adresse = addrCheck.formatted;
+        if (pfAdresseInput) pfAdresseInput.value = adresse;
       }
       var updatedP = { prenom: prenom, nom: nom, email: email, tel: tel, adresse: adresse };
       localStorage.setItem(PKEY, JSON.stringify(updatedP));

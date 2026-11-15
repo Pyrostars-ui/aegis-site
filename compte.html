@@ -27,8 +27,8 @@
     <form id="auth-form" class="contact-form">
       <div class="form-row"><label for="auth-email">E-mail</label><input type="email" id="auth-email" required autocomplete="email" placeholder="vous@exemple.fr"></div>
       <div class="form-row"><label for="auth-password">Mot de passe (6 caractères min.)</label><input type="password" id="auth-password" required minlength="6" autocomplete="current-password"></div>
-      <div class="form-row"><label for="auth-prenom">Prénom <small>(pour l'inscription)</small></label><input type="text" id="auth-prenom" autocomplete="given-name" placeholder="Votre prénom"></div>
-      <div class="form-row"><label for="auth-nom">Nom <small>(pour l'inscription)</small></label><input type="text" id="auth-nom" autocomplete="family-name" placeholder="Votre nom"></div>
+      <div class="form-row"><label for="auth-prenom">Prénom <small>(pour l'inscription)</small></label><input type="text" id="auth-prenom" minlength="2" maxlength="50" autocomplete="given-name" placeholder="Votre prénom"></div>
+      <div class="form-row"><label for="auth-nom">Nom <small>(pour l'inscription)</small></label><input type="text" id="auth-nom" minlength="2" maxlength="50" autocomplete="family-name" placeholder="Votre nom"></div>
       <div class="form-actions">
         <button type="submit" class="btn btn-primary btn-sm" id="auth-login-btn">Se connecter</button>
         <button type="button" class="btn btn-outline btn-sm" id="auth-signup-btn">Créer un compte</button>
@@ -52,11 +52,11 @@
     </div>
   </div>
   <form id="profile-form" class="profile-form" hidden aria-label="Modifier le profil">
-    <div class="form-row"><label for="pf-prenom">Prénom</label><input type="text" id="pf-prenom" required minlength="2" autocomplete="given-name"></div>
-    <div class="form-row"><label for="pf-nom">Nom</label><input type="text" id="pf-nom" required minlength="2" autocomplete="family-name"></div>
+    <div class="form-row"><label for="pf-prenom">Prénom</label><input type="text" id="pf-prenom" required minlength="2" maxlength="50" autocomplete="given-name"></div>
+    <div class="form-row"><label for="pf-nom">Nom</label><input type="text" id="pf-nom" required minlength="2" maxlength="50" autocomplete="family-name"></div>
     <div class="form-row"><label for="pf-email">E-mail</label><input type="email" id="pf-email" required autocomplete="email"></div>
     <div class="form-row"><label for="pf-tel">Téléphone (format international)</label><input type="tel" id="pf-tel" inputmode="tel" maxlength="22" autocomplete="tel" placeholder="+33 6 12 34 56 78"></div>
-    <div class="form-row"><label for="pf-adresse">Adresse postale</label><textarea id="pf-adresse" rows="2" autocomplete="street-address"></textarea></div>
+    <div class="form-row"><label for="pf-adresse">Adresse postale</label><div class="address-autocomplete"><textarea id="pf-adresse" rows="2" autocomplete="street-address" placeholder="Ex. 12 Rue de Rivoli, 75001 Paris"></textarea><ul class="address-suggestions" id="pf-adresse-suggestions" hidden role="listbox" aria-label="Suggestions d'adresse"></ul></div></div>
     <div class="form-actions">
       <button type="submit" class="btn btn-primary btn-sm">Enregistrer</button>
       <button type="button" class="btn btn-outline btn-sm" id="pf-cancel">Annuler</button>

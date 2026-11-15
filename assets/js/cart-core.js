@@ -100,7 +100,41 @@
     }
     return { ok: true, formatted: '+' + digits };
   }
-  var api = { TVA: TVA, PROMOS: PROMOS, computeTotals: computeTotals, applyPromo: applyPromo, makeTrackNumber: makeTrackNumber, addItem: addItem, formatPhoneInput: formatPhoneInput, validatePhone: validatePhone };
+  function sanitizeNameInput(raw) {
+    return String(raw || '').replace(/[^\p{L}\s'’-]/gu, '').replace(/\s{2,}/g, ' ').slice(0, 50);
+  }
+  function validateName(raw, label) {
+    var trimmed = String(raw || '').trim().replace(/\s{2,}/g, ' ');
+    var field = label || 'Ce champ';
+    if (/[^\p{L}\s'’-]/u.test(trimmed)) {
+      return { ok: false, error: field + ' : caractères spéciaux et chiffres non autorisés.' };
+    }
+    var letters = (trimmed.match(/\p{L}/gu) || []).length;
+    if (trimmed.length < 2 || letters < 2) {
+      return { ok: false, error: field + ' doit contenir au moins 2 lettres.' };
+    }
+    if (trimmed.length > 50) {
+      return { ok: false, error: field + ' ne doit pas dépasser 50 caractères.' };
+    }
+    return { ok: true, formatted: trimmed };
+  }
+  function validateAddress(raw) {
+    var trimmed = String(raw || '').trim().replace(/\s{2,}/g, ' ');
+    if (!trimmed) return { ok: true, formatted: '' };
+    if (/[<>{}[\]$]/.test(trimmed)) {
+      return { ok: false, error: 'Adresse postale : caractères spéciaux non autorisés.' };
+    }
+    if (trimmed.length < 8) {
+      return { ok: false, error: 'Adresse postale trop courte (ex. 12 Rue de Rivoli, 75001 Paris).' };
+    }
+    var hasDigit = /\d/.test(trimmed);
+    var words = trimmed.split(/\s+/).filter(function (w) { return /\p{L}{2,}/u.test(w); });
+    if (!hasDigit || words.length < 2) {
+      return { ok: false, error: 'Format d’adresse invalide : indiquez numéro/code postal et ville (ex. 12 Rue de Rivoli, 75001 Paris).' };
+    }
+    return { ok: true, formatted: trimmed };
+  }
+  var api = { TVA: TVA, PROMOS: PROMOS, computeTotals: computeTotals, applyPromo: applyPromo, makeTrackNumber: makeTrackNumber, addItem: addItem, formatPhoneInput: formatPhoneInput, validatePhone: validatePhone, sanitizeNameInput: sanitizeNameInput, validateName: validateName, validateAddress: validateAddress };
   if (typeof module !== 'undefined' && module.exports) { module.exports = api; }
   root.CartCore = api;
 })(typeof window !== 'undefined' ? window : globalThis);

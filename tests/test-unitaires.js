@@ -39,4 +39,11 @@ assert.strictEqual(C.validatePhone('+33 6 12 34 56 78').ok, true);
 assert.strictEqual(C.validatePhone('+1 555 123 4567').ok, true);
 assert.strictEqual(C.validatePhone('+33 6 12 34').ok, false);
 assert.strictEqual(C.validatePhone('+33 6 12 ab 56 78').ok, false);
-console.log('✅ Tests unitaires : 15/15 OK');
+// Name sanitization & validation + postal address validation
+assert.strictEqual(C.sanitizeNameInput('Jean-Luc 123!@#'), 'Jean-Luc ');
+assert.strictEqual(C.validateName('Adélaïde', 'Prénom').ok, true);
+assert.strictEqual(C.validateName('A', 'Prénom').ok, false);
+assert.strictEqual(C.validateName('Jean@42', 'Prénom').ok, false);
+assert.strictEqual(C.validateAddress('12 Rue de Rivoli, 75001 Paris').ok, true);
+assert.strictEqual(C.validateAddress('Paris').ok, false);
+console.log('✅ Tests unitaires : 21/21 OK');
